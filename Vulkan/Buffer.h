@@ -7,13 +7,53 @@ namespace vk
 {
     class Divice;
 
+	class Image
+	{
+		friend class Device;
+	private:
+		VkDevice               device = VK_NULL_HANDLE;
+	public:
+		VkImage                image = VK_NULL_HANDLE;
+		VkDeviceMemory         memory = VK_NULL_HANDLE;
+		VkDeviceSize           size = 0;
+		VkExtent3D             extent;
+		VkDeviceSize           alignment = 0;
+		void*                  mapped = nullptr;
+		VkBufferUsageFlags     usageFlags;
+		VkMemoryPropertyFlags  memoryPropertyFlags;
+
+		Image() {}
+		~Image() { Destroy(); }
+
+		void Destroy() {
+			Unmap();
+			if (image)
+				vkDestroyImage(device, image, nullptr);
+			if (memory)
+				vkFreeMemory(device, memory, nullptr);
+		}
+
+		Image(const Image& obj) = delete;
+
+		VkResult Map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0)
+		{
+			return vkMapMemory(device, memory, offset, size, 0, &mapped);
+		}
+
+		void Unmap()
+		{
+			if (mapped) {
+				vkUnmapMemory(device, memory);
+				mapped = nullptr;
+			}
+		}
+	};
+
     class Buffer
     {
         friend class Device;
-
     private:
-        VkDevice device;
-
+        VkDevice               device = VK_NULL_HANDLE;
     public:
         VkBuffer               buffer = VK_NULL_HANDLE;
         VkDeviceMemory         memory = VK_NULL_HANDLE;
@@ -23,6 +63,8 @@ namespace vk
         void*                  mapped = nullptr;
         VkBufferUsageFlags     usageFlags;
         VkMemoryPropertyFlags  memoryPropertyFlags;
+
+        Buffer(){}
 
         ~Buffer() {
             Destroy();
@@ -36,7 +78,7 @@ namespace vk
                 vkFreeMemory(device, memory, nullptr);
         }
 
-        Buffer(const Buffer& obj) = delete;
+	    Buffer(const Buffer& obj) = delete;
 
         VkResult Map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0)
         {

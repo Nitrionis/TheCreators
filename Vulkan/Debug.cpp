@@ -43,12 +43,12 @@ VkResult vk::Debug::Setup(VkInstance instance, VkDebugReportFlagsEXT flags)
     CreateDebugReportCallbackEXT =
         (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
     if (!CreateDebugReportCallbackEXT)
-        throw std::runtime_error(DEBUG_MSG("Runtime: failed get vkCreateDebugReportCallbackEXT"));
+        throw std::runtime_error("Runtime: failed get vkCreateDebugReportCallbackEXT");
 
     DestroyDebugReportCallbackEXT =
         (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
     if (!DestroyDebugReportCallbackEXT)
-        throw std::runtime_error(DEBUG_MSG("Runtime: failed get vkDestroyDebugReportCallbackEXT"));
+        throw std::runtime_error("Runtime: failed get vkDestroyDebugReportCallbackEXT");
 
     VkDebugReportCallbackCreateInfoEXT debugCreateInfo = {};
     debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;

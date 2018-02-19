@@ -11,7 +11,7 @@ namespace vk
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
         VkDevice         logicalDevice  = VK_NULL_HANDLE;
 
-        VkPhysicalDeviceProperties       properties;
+	    VkPhysicalDeviceProperties       properties;
         VkPhysicalDeviceFeatures         features;
         VkPhysicalDeviceMemoryProperties memoryProperties;
 
@@ -20,24 +20,26 @@ namespace vk
         std::vector<std::string>             supportedExtensions;
 
     public:
+	    // Default queue for copy operations
+	    vk::CommandQueue defaultQueue = VK_NULL_HANDLE;
+	    // Default command pool for copy operations
+	    vk::UniqueCommandPool defaultPool{&logicalDevice, vkDestroyCommandPool};
+
         struct {
             uint32_t graphicsFamily = UINT32_MAX;
-            uint32_t computeFamily = UINT32_MAX;
-            uint32_t presentFamily = UINT32_MAX;
+            uint32_t computeFamily  = UINT32_MAX;
+            uint32_t presentFamily  = UINT32_MAX;
         } indices;
 
 	    operator VkDevice() const {
 		    return logicalDevice;
 	    }
-
 	    operator VkDevice*() {
 		    return &logicalDevice;
 	    }
-
 	    operator const VkDevice* () const {
 		    return &logicalDevice;
 	    }
-
         Device();
 
         ~Device();
@@ -91,10 +93,45 @@ namespace vk
         void CopyBuffer(
             vk::Buffer*   src,
             vk::Buffer*   dst,
-            VkCommandPool commandPool,
-            VkQueue       queue,
-            VkBufferCopy* copyRegion = nullptr
+            VkBufferCopy* copyRegion = nullptr,
+            VkCommandPool commandPool = VK_NULL_HANDLE,
+            VkQueue       commandQueue = VK_NULL_HANDLE
         );
+
+	    void CopyImage(
+		    vk::Buffer*        src,
+		    vk::Image*         dst,
+		    VkBufferImageCopy* copyRegion = nullptr,
+		    VkCommandPool      commandPool = VK_NULL_HANDLE,
+		    VkQueue            commandQueue = VK_NULL_HANDLE
+	    );
+
+	    void CreateImage(
+		    vk::Image*            image,
+		    VkExtent3D            extent,
+		    VkDeviceSize          size,
+		    void*                 data,
+		    VkImageUsageFlags     usage       = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		    VkFormat              format      = VK_FORMAT_R8G8B8A8_UNORM,
+		    VkSampleCountFlagBits samples     = VK_SAMPLE_COUNT_1_BIT,
+		    VkImageType           imageType   = VK_IMAGE_TYPE_2D,
+		    uint32_t              mipLevels   = 1,
+		    uint32_t              arrayLayers = 1
+	    );
+
+	    void SetImageBarrier(
+		    vk::Image*               image,
+		    VkImageLayout            oldLayout,
+		    VkImageLayout            newLayout,
+		    VkAccessFlags            srcAccessMask,
+	        VkAccessFlags            dstAccessMask,
+		    VkPipelineStageFlagBits  srcStage,
+		    VkPipelineStageFlagBits  dstStage,
+		    uint32_t                 srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+	        uint32_t                 dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		    VkImageSubresourceRange* subresourceRange    = nullptr,
+		    VkCommandBuffer          commandBuffer       = VK_NULL_HANDLE
+	    );
 
         uint32_t GetMemoryType(
             uint32_t              typeBits,

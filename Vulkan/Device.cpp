@@ -5,6 +5,7 @@ vk::Device::Device() {
 }
 
 vk::Device::~Device() {
+	defaultPool = VK_NULL_HANDLE;
     vkDeviceWaitIdle(logicalDevice);
     if (logicalDevice)
         vkDestroyDevice(logicalDevice, nullptr);
@@ -189,6 +190,8 @@ VkResult vk::Device::Setup(
 	if ((res == VK_SUCCESS) && (swapChain != nullptr))
 	{
 		swapChain->logicalDevice = logicalDevice;
+		defaultQueue = GetQueue(indices.graphicsFamily);
+		defaultPool = CreateCommandPool(indices.graphicsFamily, 0);
 	}
     return res;
 }
@@ -249,6 +252,7 @@ VkCommandBuffer vk::Device::CreateCommandBuffer(VkCommandPool commandPool, VkCom
     {
         VkCommandBufferBeginInfo cmdBufInfo = {};
         cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	    cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         VK_THROW_IF_FAILED(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
     }
 
@@ -308,7 +312,10 @@ VkResult vk::Device::CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropert
     bufferCreateInfo.usage = usageFlags;
     bufferCreateInfo.size  = size;
     bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    VK_THROW_IF_FAILED(vkCreateBuffer(logicalDevice, &bufferCreateInfo, nullptr, &buffer->buffer));
+
+	if (vkCreateBuffer(logicalDevice, &bufferCreateInfo, nullptr, &buffer->buffer) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create buffer!");
+	}
 
     VkMemoryRequirements memReqs;
     vkGetBufferMemoryRequirements(logicalDevice, buffer->buffer, &memReqs);
@@ -317,7 +324,10 @@ VkResult vk::Device::CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropert
     memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     memAlloc.allocationSize  = memReqs.size;
     memAlloc.memoryTypeIndex = GetMemoryType(memReqs.memoryTypeBits, memoryFlags);
-    VK_THROW_IF_FAILED(vkAllocateMemory(logicalDevice, &memAlloc, nullptr, &buffer->memory));
+
+    if (vkAllocateMemory(logicalDevice, &memAlloc, nullptr, &buffer->memory) != VK_SUCCESS) {
+	    throw std::runtime_error("Failed to allocate buffer memory!");
+    }
 
     buffer->alignment = memReqs.alignment;
     buffer->size = memAlloc.allocationSize;
@@ -339,8 +349,7 @@ VkResult vk::Device::CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropert
 }
 
 void vk::Device::ExecuteCommandBuffer(VkCommandBuffer commandBuffer, VkCommandPool commandPool, VkQueue queue, bool free) {
-    if (commandBuffer == VK_NULL_HANDLE)
-    {
+    if (commandBuffer == VK_NULL_HANDLE) {
         return;
     }
 
@@ -354,6 +363,7 @@ void vk::Device::ExecuteCommandBuffer(VkCommandBuffer commandBuffer, VkCommandPo
     // Create fence to ensure that the command buffer has finished executing
     VkFenceCreateInfo fenceInfo = {};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.pNext = nullptr;
     fenceInfo.flags = VK_FLAGS_NONE;
     VkFence fence;
     VK_THROW_IF_FAILED(vkCreateFence(logicalDevice, &fenceInfo, nullptr, &fence));
@@ -365,29 +375,37 @@ void vk::Device::ExecuteCommandBuffer(VkCommandBuffer commandBuffer, VkCommandPo
 
     vkDestroyFence(logicalDevice, fence, nullptr);
 
-    if (free)
-    {
+    if (free) {
         vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
     }
 }
 
-void vk::Device::CopyBuffer(vk::Buffer *src, vk::Buffer *dst, VkCommandPool commandPool,  VkQueue queue, VkBufferCopy *copyRegion) {
+void vk::Device::CopyBuffer(vk::Buffer *src, vk::Buffer *dst, VkBufferCopy *copyRegion, VkCommandPool commandPool, VkQueue commandQueue) {
     assert(dst->size <= src->size);
     assert(src->buffer && src->buffer);
-    VkCommandBuffer copyCmdBuffer = CreateCommandBuffer(commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+    VkCommandBuffer copyCmdBuffer = CreateCommandBuffer(
+	    commandPool == VK_NULL_HANDLE ? this->defaultPool : commandPool,
+	    VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+	    true
+    );
+
     VkBufferCopy bufferCopy{};
-    if (copyRegion == nullptr)
-    {
+
+    if (copyRegion == nullptr) {
         bufferCopy.size = src->size;
     }
-    else
-    {
+    else {
         bufferCopy = *copyRegion;
     }
 
     vkCmdCopyBuffer(copyCmdBuffer, src->buffer, dst->buffer, 1, &bufferCopy);
 
-    ExecuteCommandBuffer(copyCmdBuffer, commandPool, queue);
+    ExecuteCommandBuffer(
+	    copyCmdBuffer,
+	    commandPool == VK_NULL_HANDLE ? this->defaultPool : commandPool,
+	    commandQueue == VK_NULL_HANDLE ? this->defaultQueue : commandQueue
+    );
 }
 
 bool vk::Device::ExtensionSupported(std::string extension) {
@@ -415,4 +433,194 @@ uint32_t vk::Device::GetQueueFamilyIndex(VkQueueFlagBits flags, bool supportPres
 		}
 	}
 	return UINT32_MAX;
+}
+
+void vk::Device::CreateImage(
+	vk::Image            *image,
+	VkExtent3D            extent,
+	VkDeviceSize          size,
+	void*                 data,
+	VkImageUsageFlags     usage,
+	VkFormat              format,
+	VkSampleCountFlagBits samples,
+	VkImageType           imageType,
+	uint32_t              mipLevels,
+	uint32_t              arrayLayers)
+{
+	assert(data != nullptr);
+
+	image->device = logicalDevice;
+	image->usageFlags = usage;
+	image->memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	image->extent = extent;
+
+	VkImageCreateInfo imageInfo = {};
+	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageInfo.pNext = nullptr;
+	imageInfo.flags = VK_FLAGS_NONE;
+	imageInfo.imageType = imageType;
+	imageInfo.format = format;
+	imageInfo.extent = extent;
+	imageInfo.mipLevels = mipLevels;
+	imageInfo.arrayLayers = arrayLayers;
+	imageInfo.samples = samples;
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageInfo.usage = usage;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.queueFamilyIndexCount = 1;
+	imageInfo.pQueueFamilyIndices = &indices.graphicsFamily;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+	if (vkCreateImage(logicalDevice, &imageInfo, nullptr, &image->image) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create image!");
+	}
+
+	VkMemoryRequirements memReqs;
+	vkGetImageMemoryRequirements(logicalDevice, image->image, &memReqs);
+
+	VkMemoryAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memReqs.size;
+	allocInfo.memoryTypeIndex = GetMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	if (vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &image->memory) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate image memory!");
+	}
+
+	vkBindImageMemory(logicalDevice, image->image, image->memory, 0);
+
+	image->alignment = memReqs.alignment;
+	image->size = allocInfo.allocationSize;
+
+	vk::Buffer stagingBuffer;
+
+	CreateBuffer(
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		&stagingBuffer,
+		size,
+		data
+	);
+
+	SetImageBarrier(image,
+		VK_IMAGE_LAYOUT_UNDEFINED,         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		0,                                 VK_ACCESS_TRANSFER_WRITE_BIT,
+		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT
+	);
+
+	CopyImage(&stagingBuffer, image);
+
+	SetImageBarrier(image,
+	    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+	    VK_ACCESS_TRANSFER_WRITE_BIT,         VK_ACCESS_SHADER_READ_BIT,
+	    VK_PIPELINE_STAGE_TRANSFER_BIT,       VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+	);
+}
+
+void vk::Device::CopyImage(vk::Buffer *src, vk::Image *dst, VkBufferImageCopy *copyRegion, VkCommandPool commandPool, VkQueue commandQueue) {
+	assert(dst->size <= src->size);
+	assert(src->buffer && src->buffer);
+
+	VkCommandBuffer copyCmdBuffer = CreateCommandBuffer(
+		commandPool == VK_NULL_HANDLE ? this->defaultPool : commandPool,
+		VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		true
+	);
+
+	VkBufferImageCopy region = {};
+
+	if (copyRegion == nullptr)
+	{
+		region.bufferOffset = 0;
+		region.bufferRowLength = 0;
+		region.bufferImageHeight = 0;
+
+		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.imageSubresource.mipLevel = 0;
+		region.imageSubresource.baseArrayLayer = 0;
+		region.imageSubresource.layerCount = 1;
+
+		region.imageOffset = {0, 0, 0};
+		region.imageExtent = dst->extent;
+	}
+	else
+	{
+		region = *copyRegion;
+	}
+
+	vkCmdCopyBufferToImage(
+		copyCmdBuffer,
+		src->buffer,
+		dst->image,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		1,
+		&region
+	);
+
+	ExecuteCommandBuffer(
+		copyCmdBuffer,
+		commandPool == VK_NULL_HANDLE ? this->defaultPool : commandPool,
+		commandQueue == VK_NULL_HANDLE ? this->defaultQueue : commandQueue
+	);
+}
+
+void vk::Device::SetImageBarrier(
+	vk::Image*               image,
+	VkImageLayout            oldLayout,
+	VkImageLayout            newLayout,
+	VkAccessFlags            srcAccessMask,
+	VkAccessFlags            dstAccessMask,
+	VkPipelineStageFlagBits  srcStage,
+	VkPipelineStageFlagBits  dstStage,
+	uint32_t                 srcQueueFamilyIndex,
+	uint32_t                 dstQueueFamilyIndex,
+	VkImageSubresourceRange* subresourceRange,
+	VkCommandBuffer          commandBuffer)
+{
+	VkImageMemoryBarrier barrier = {};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.image = image->image;
+
+	barrier.oldLayout = oldLayout;
+	barrier.newLayout = newLayout;
+
+	barrier.srcAccessMask = srcAccessMask;
+	barrier.dstAccessMask = dstAccessMask;
+
+	barrier.srcQueueFamilyIndex = srcQueueFamilyIndex;
+	barrier.dstQueueFamilyIndex = dstQueueFamilyIndex;
+
+	if (subresourceRange != nullptr) {
+		barrier.subresourceRange = *subresourceRange;
+	}
+	else {
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+	}
+
+	if (commandBuffer == VK_NULL_HANDLE) {
+		commandBuffer = CreateCommandBuffer(defaultPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			srcStage, dstStage,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier
+		);
+		ExecuteCommandBuffer(commandBuffer, defaultPool, defaultQueue);
+	}
+	else {
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			srcStage, dstStage,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier
+		);
+	}
 }

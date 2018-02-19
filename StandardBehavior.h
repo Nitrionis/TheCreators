@@ -2,8 +2,15 @@
 
 #include "BaseCode.h"
 
-class StandardBehavior : public BaseCode
-{
+class Noncopyable {
+protected:
+    Noncopyable() = default;
+    ~Noncopyable() = default;
+    Noncopyable(Noncopyable const & ) = delete;
+    Noncopyable& operator=(Noncopyable const &) = delete;
+};
+
+class StandardBehavior : public BaseCode {
 public:
     StandardBehavior() {}
     ~StandardBehavior() {}

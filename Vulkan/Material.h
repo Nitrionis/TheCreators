@@ -42,17 +42,17 @@ namespace vk
 
 	class Material {
 	private:
-		VkDevice         device         = VK_NULL_HANDLE;
-		VkPipeline       pipeline       = VK_NULL_HANDLE;
+		VkDevice device = VK_NULL_HANDLE;
+
+		VkPipeline pipeline = VK_NULL_HANDLE;
+		VkGraphicsPipelineCreateInfo pipelineInfo = {};
+
 		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 
 		std::vector<VkShaderModule> shaders;
+		std::vector<VkPipelineShaderStageCreateInfo> stagesInfo;
 
 		std::string directoryPath = "C:\\Developer\\JetBrains\\Clion\\Proj\\TheCreators\\";
-
-		std::vector<VkPipelineShaderStageCreateInfo> stagesInfo;
-		VkGraphicsPipelineCreateInfo pipelineInfo;
-
 	public:
 		std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
 		std::vector<VkDynamicState> dynamicStates;
@@ -71,20 +71,18 @@ namespace vk
 		operator VkPipeline() const {
 			return pipeline;
 		}
-
 		Material();
 		~Material();
-
 		void Setup(
-			VkDevice                            device,
-			vk::RenderPass&                     renderPass,
-			std::vector<const char*>&           shaderFileNames,
+			VkDevice device,
+			vk::RenderPass& renderPass,
+			std::vector<const char*>& shaderFileNames,
 			std::vector<VkShaderStageFlagBits>& shaderUsage,
-			size_t                              subpassIndex
+			size_t subpassIndex
 		);
 		void Destroy();
 
-		static void CreateMaterials(Material* materials, uint32_t size);
+		static void CreateMaterials(vk::Material* materials, uint32_t size);
 
 	private:
 		std::vector<char> LoadFile(const char* filename);

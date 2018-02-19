@@ -69,5 +69,6 @@ namespace vk
 	using UniqueCommandPool = vk::UniqueHandle<VkCommandPool>;
 	using UniqueFramebuffer = vk::UniqueHandle<VkFramebuffer>;
 	using UniqueCommandBuffer = vk::UniqueHandle<VkCommandBuffer>;
+	using UniqueSemaphore = vk::UniqueHandle<VkSemaphore>;
 
 }

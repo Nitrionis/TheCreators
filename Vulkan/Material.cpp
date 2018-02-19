@@ -128,25 +128,26 @@ vk::Material::Material() {
 vk::Material::~Material() { Destroy(); }
 
 void vk::Material::Setup(
-	VkDevice                            device,
-	vk::RenderPass&                     renderPass,
-	std::vector<const char*>&           shaderFileNames,
+	VkDevice device,
+	vk::RenderPass& renderPass,
+	std::vector<const char*>& shaderFileNames,
 	std::vector<VkShaderStageFlagBits>& shaderUsage,
-	size_t                              subpassIndex)
+	size_t subpassIndex)
 {
 	this->device = device;
 
 	ConnectObjects();
 
 	shaders.resize(shaderFileNames.size());
+
 	for (int i = 0; i < shaderFileNames.size(); i++) {
 		auto code = LoadFile(shaderFileNames[i]);
 
 		VkShaderModuleCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		createInfo.pNext = nullptr;
-		createInfo.flags = VK_FLAGS_NONE;
-		createInfo.codeSize = static_cast<uint32_t>(code.size());
+		createInfo.pNext = NULL;
+		createInfo.flags = 0;
+		createInfo.codeSize = code.size();
 		createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
 		if (vkCreateShaderModule(device, &createInfo, nullptr, &shaders[i]) != VK_SUCCESS) {
@@ -156,36 +157,47 @@ void vk::Material::Setup(
 	stagesInfo.resize(shaderUsage.size());
 	for (int i = 0; i < stagesInfo.size(); i++) {
 		stagesInfo[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		stagesInfo[i].pNext = nullptr;
-		stagesInfo[i].flags = VK_FLAGS_NONE;
-		stagesInfo[i].pSpecializationInfo   = nullptr;
-		stagesInfo[i].stage  = shaderUsage[i];
+		stagesInfo[i].pNext = NULL;
+		stagesInfo[i].flags = 0;
+		stagesInfo[i].pSpecializationInfo = NULL;
+		stagesInfo[i].stage = shaderUsage[i];
 		stagesInfo[i].module = shaders[i];
-		stagesInfo[i].pName  = "main";
+		stagesInfo[i].pName = "main";
 	}
-
-
 	if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create pipeline layout!");
 	}
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	pipelineInfo.pNext = nullptr;
-	pipelineInfo.flags = VK_FLAGS_NONE;
-	pipelineInfo.stageCount          = static_cast<uint32_t>(stagesInfo.size());
+	pipelineInfo.stageCount          = stagesInfo.size();
 	pipelineInfo.pStages             = stagesInfo.data();
 	pipelineInfo.pVertexInputState   = &vertexInputInfo;
 	pipelineInfo.pInputAssemblyState = &inputAssemblyInfo;
 	pipelineInfo.pViewportState      = &viewportInfo;
 	pipelineInfo.pRasterizationState = &rasterizerInfo;
 	pipelineInfo.pMultisampleState   = &multisamplingInfo;
-	pipelineInfo.pDepthStencilState  = nullptr; // TODO add depth buffer
+	pipelineInfo.pDepthStencilState  = nullptr;
 	pipelineInfo.pColorBlendState    = &colorBlendingInfo;
-	pipelineInfo.pDynamicState       = nullptr;//&dynamicStateInfo;
+	pipelineInfo.pDynamicState       = nullptr;
 	pipelineInfo.layout              = pipelineLayout;
-	pipelineInfo.renderPass          = renderPass.renderPass;
-	pipelineInfo.subpass             = static_cast<uint32_t>(subpassIndex);
+	pipelineInfo.renderPass          = renderPass;
+	pipelineInfo.subpass             = subpassIndex;
 	pipelineInfo.basePipelineHandle  = VK_NULL_HANDLE;
-	pipelineInfo.basePipelineIndex   = -1; // Optional
+	pipelineInfo.basePipelineIndex   = -1;
+}
+
+void vk::Material::CreateMaterials(vk::Material *materials, uint32_t size) {
+
+	std::vector<VkPipeline> pipelines(size);
+	std::vector<VkGraphicsPipelineCreateInfo> pipelineInfos(size);
+	for (uint32_t i = 0; i < size; i++) {
+		pipelineInfos[i] = materials[i].pipelineInfo;
+	}
+	if (vkCreateGraphicsPipelines(materials->device, VK_NULL_HANDLE, size, pipelineInfos.data(), nullptr, pipelines.data()) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create graphics pipelines!");
+	}
+	for (uint32_t i = 0; i < size; i++) {
+		materials[i].pipeline = pipelines[i];
+	}
 }
 
 void vk::Material::ConnectObjects() {
@@ -255,27 +267,12 @@ std::vector<char> vk::Material::LoadFile(const char* filename) {
 	{
 		throw std::runtime_error("LoadFile: failed to open file!");
 	}
-	size_t fileSize = static_cast<size_t>(file.tellg());
+	size_t fileSize = (size_t) file.tellg();
 	std::vector<char> buffer(fileSize);
 	file.seekg(0);
 	file.read(buffer.data(), fileSize);
 	file.close();
 	return buffer;
-}
-
-void vk::Material::CreateMaterials(vk::Material *materials, uint32_t size) {
-
-	std::vector<VkPipeline> pipelines(size);
-	std::vector<VkGraphicsPipelineCreateInfo> pipelineInfos(size);
-	for (uint32_t i = 0; i < size; i++) {
-		pipelineInfos[i] = materials[i].pipelineInfo;
-	}
-	if (vkCreateGraphicsPipelines(materials->device, VK_NULL_HANDLE, size, pipelineInfos.data(), nullptr, pipelines.data()) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create graphics pipelines!");
-	}
-	for (uint32_t i = 0; i < size; i++) {
-		materials[i].pipeline = pipelines[i];
-	}
 }
 
 VkViewport vk::initialize::viewportDefault(VkExtent2D extent) {

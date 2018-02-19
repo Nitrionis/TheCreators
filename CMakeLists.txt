@@ -10,8 +10,11 @@ set(SOURCE_FILES
         Vulkan/VulkanSharedHaders.h
         Scene.cpp
         Scene.h
-        SceneRenderer.cpp
-        SceneRenderer.h
+        SceneRenderer/SceneRenderer.cpp
+        SceneRenderer/SceneRenderer.h
+        SceneRenderer/SceneRendererChunks.cpp
+        SceneRenderer/SceneRendererVulkanObjects.cpp
+        SceneRenderer/SceneRendererSettings.cpp
         Vulkan/Device.cpp
         Vulkan/Device.h
         Vulkan/Buffer.h
@@ -28,10 +31,14 @@ set(SOURCE_FILES
         BaseCode.h
         Vulkan/Material.cpp
         Vulkan/Material.h
-        Vulkan/UniqueHandle.h)
+        Vulkan/UniqueHandle.h
+        ImageLoader.cpp
+        ImageLoader.h
+        stb_image.h)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/Vulkan/)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/SceneRenderer/)
 
 add_executable(TheCreators ${SOURCE_FILES})
 
