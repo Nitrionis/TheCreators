@@ -68,7 +68,7 @@ void SceneRenderer::CreateCommandBuffers() {
 		VkRenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.renderPass = vulkan.renderPass;
-		renderPassInfo.framebuffer = vulkan.swapChainFramebuffers[i];
+		renderPassInfo.framebuffer = vulkan.framebuffers[i];
 		renderPassInfo.renderArea.offset = {0, 0};
 		renderPassInfo.renderArea.extent = vulkan.swapChain.extent;
 
@@ -78,7 +78,12 @@ void SceneRenderer::CreateCommandBuffers() {
 
 		vkCmdBeginRenderPass(vulkan.commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindPipeline(vulkan.commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, chunks.material);
+		vkCmdBindPipeline(vulkan.commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, vulkan.material);
+
+		vkCmdBindDescriptorSets(
+			vulkan.commandBuffers[i],
+			VK_PIPELINE_BIND_POINT_GRAPHICS,
+			vulkan.material.pipelineLayout, 0, 1, &chunks.descriptorSet, 0, nullptr);
 
 		vkCmdDraw(vulkan.commandBuffers[i], 3, 1, 0, 0);
 

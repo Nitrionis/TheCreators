@@ -57,13 +57,15 @@ public:
 		vk::UniqueCommandPool commandPool{device, vkDestroyCommandPool};
 		std::vector<vk::CommandBuffer> commandBuffers;
 
-		std::vector<vk::UniqueFramebuffer> swapChainFramebuffers;
+		std::vector<vk::UniqueFramebuffer> framebuffers;
 
 		vk::RenderPass renderPass{device};
 
 		vk::UniqueSemaphore imageAvailableSemaphore{device, vkDestroySemaphore};
 		vk::UniqueSemaphore renderFinishedSemaphore{device, vkDestroySemaphore};
 
+		vk::Material material;
+		vk::Image image;
 
 		void Initialize(VulkanObjectsSettings& settings);
 	private:
@@ -80,15 +82,21 @@ public:
 		VulkanSharedDate& vulkan;
 		VulkanObjectsSettings& settings;
 	public:
-		vk::Material material;
+		vk::UniqueHandle<VkSampler> sampler{vulkan.device, vkDestroySampler};
+		vk::UniqueHandle<VkDescriptorSetLayout> descriptorSetLayout{vulkan.device, vkDestroyDescriptorSetLayout};
+		vk::UniqueHandle<VkDescriptorPool> descriptorPool{vulkan.device, vkDestroyDescriptorPool};
+		VkDescriptorSet descriptorSet;
 
 		Chunks(VulkanSharedDate& vko, VulkanObjectsSettings& settings)
 			: vulkan(vko), settings(settings) {}
 
 		void Initialize();
-
 	private:
 		void CreateMaterials();
+		void CreateImage();
+		void CreateTextureImageView();
+		void CreateSamplers();
+		void CreateDescriptors();
 
 	} chunks{vulkan, settings};
 };

@@ -28,7 +28,7 @@ void SceneRenderer::VulkanSharedDate::Initialize(SceneRenderer::VulkanObjectsSet
 }
 
 void SceneRenderer::VulkanSharedDate::CreateFrameBuffers() {
-	swapChainFramebuffers.resize(swapChain.imageCount, vk::UniqueFramebuffer{device, vkDestroyFramebuffer});
+	framebuffers.resize(swapChain.imageCount, vk::UniqueFramebuffer{device, vkDestroyFramebuffer});
 	for (size_t i = 0; i < swapChain.imageCount; i++)
 	{
 		VkFramebufferCreateInfo framebufferInfo = {};
@@ -40,7 +40,7 @@ void SceneRenderer::VulkanSharedDate::CreateFrameBuffers() {
 		framebufferInfo.height = swapChain.extent.height;
 		framebufferInfo.layers = 1;
 
-		if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, swapChainFramebuffers[i].replace()) != VK_SUCCESS) {
+		if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, framebuffers[i].replace()) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create framebuffer!");
 		}
 	}

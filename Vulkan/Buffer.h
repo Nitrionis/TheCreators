@@ -11,14 +11,18 @@ namespace vk
 	{
 		friend class Device;
 	private:
-		VkDevice               device = VK_NULL_HANDLE;
+		VkDevice               device   = VK_NULL_HANDLE;
 	public:
-		VkImage                image = VK_NULL_HANDLE;
-		VkDeviceMemory         memory = VK_NULL_HANDLE;
-		VkDeviceSize           size = 0;
+		VkImage                image    = VK_NULL_HANDLE;
+		VkDeviceMemory         memory   = VK_NULL_HANDLE;
+		VkImageView            view     = VK_NULL_HANDLE;
+
+		VkDeviceSize           size     = 0;
 		VkExtent3D             extent;
 		VkDeviceSize           alignment = 0;
-		void*                  mapped = nullptr;
+
+		void*                  mapped    = nullptr;
+
 		VkBufferUsageFlags     usageFlags;
 		VkMemoryPropertyFlags  memoryPropertyFlags;
 
@@ -27,6 +31,8 @@ namespace vk
 
 		void Destroy() {
 			Unmap();
+			if (view)
+				vkDestroyImageView(device, view, nullptr);
 			if (image)
 				vkDestroyImage(device, image, nullptr);
 			if (memory)
@@ -58,17 +64,15 @@ namespace vk
         VkBuffer               buffer = VK_NULL_HANDLE;
         VkDeviceMemory         memory = VK_NULL_HANDLE;
         VkDescriptorBufferInfo descriptor;
-        VkDeviceSize           size = 0;
+        VkDeviceSize           size      = 0;
         VkDeviceSize           alignment = 0;
-        void*                  mapped = nullptr;
+        void*                  mapped    = nullptr;
         VkBufferUsageFlags     usageFlags;
         VkMemoryPropertyFlags  memoryPropertyFlags;
 
         Buffer(){}
 
-        ~Buffer() {
-            Destroy();
-        }
+        ~Buffer() { Destroy(); }
 
         void Destroy() {
             Unmap();

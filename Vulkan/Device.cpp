@@ -449,27 +449,22 @@ void vk::Device::CreateImage(
 {
 	assert(data != nullptr);
 
-	image->device = logicalDevice;
-	image->usageFlags = usage;
-	image->memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-	image->extent = extent;
-
 	VkImageCreateInfo imageInfo = {};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	imageInfo.pNext = nullptr;
 	imageInfo.flags = VK_FLAGS_NONE;
-	imageInfo.imageType = imageType;
-	imageInfo.format = format;
-	imageInfo.extent = extent;
-	imageInfo.mipLevels = mipLevels;
-	imageInfo.arrayLayers = arrayLayers;
-	imageInfo.samples = samples;
-	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	imageInfo.usage = usage;
-	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.imageType             = imageType;
+	imageInfo.format                = format;
+	imageInfo.extent                = extent;
+	imageInfo.mipLevels             = mipLevels;
+	imageInfo.arrayLayers           = arrayLayers;
+	imageInfo.samples               = samples;
+	imageInfo.tiling                = VK_IMAGE_TILING_OPTIMAL;
+	imageInfo.usage                 = usage;
+	imageInfo.sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
 	imageInfo.queueFamilyIndexCount = 1;
-	imageInfo.pQueueFamilyIndices = &indices.graphicsFamily;
-	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.pQueueFamilyIndices   = &indices.graphicsFamily;
+	imageInfo.initialLayout         = VK_IMAGE_LAYOUT_UNDEFINED;
 
 	if (vkCreateImage(logicalDevice, &imageInfo, nullptr, &image->image) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create image!");
@@ -489,8 +484,12 @@ void vk::Device::CreateImage(
 
 	vkBindImageMemory(logicalDevice, image->image, image->memory, 0);
 
-	image->alignment = memReqs.alignment;
-	image->size = allocInfo.allocationSize;
+	image->device               = logicalDevice;
+	image->usageFlags           = usage;
+	image->memoryPropertyFlags  = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	image->extent               = extent;
+	image->alignment            = memReqs.alignment;
+	image->size                 = allocInfo.allocationSize;
 
 	vk::Buffer stagingBuffer;
 
@@ -518,19 +517,16 @@ void vk::Device::CreateImage(
 }
 
 void vk::Device::CopyImage(vk::Buffer *src, vk::Image *dst, VkBufferImageCopy *copyRegion, VkCommandPool commandPool, VkQueue commandQueue) {
-	assert(dst->size <= src->size);
-	assert(src->buffer && src->buffer);
+	assert(dst->size >= src->size);
+	assert(dst->image && src->buffer);
 
 	VkCommandBuffer copyCmdBuffer = CreateCommandBuffer(
 		commandPool == VK_NULL_HANDLE ? this->defaultPool : commandPool,
 		VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 		true
 	);
-
 	VkBufferImageCopy region = {};
-
-	if (copyRegion == nullptr)
-	{
+	if (copyRegion == nullptr) {
 		region.bufferOffset = 0;
 		region.bufferRowLength = 0;
 		region.bufferImageHeight = 0;
@@ -543,11 +539,9 @@ void vk::Device::CopyImage(vk::Buffer *src, vk::Image *dst, VkBufferImageCopy *c
 		region.imageOffset = {0, 0, 0};
 		region.imageExtent = dst->extent;
 	}
-	else
-	{
+	else {
 		region = *copyRegion;
 	}
-
 	vkCmdCopyBufferToImage(
 		copyCmdBuffer,
 		src->buffer,
@@ -556,7 +550,6 @@ void vk::Device::CopyImage(vk::Buffer *src, vk::Image *dst, VkBufferImageCopy *c
 		1,
 		&region
 	);
-
 	ExecuteCommandBuffer(
 		copyCmdBuffer,
 		commandPool == VK_NULL_HANDLE ? this->defaultPool : commandPool,

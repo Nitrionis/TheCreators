@@ -47,13 +47,13 @@ namespace vk
 		VkPipeline pipeline = VK_NULL_HANDLE;
 		VkGraphicsPipelineCreateInfo pipelineInfo = {};
 
-		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-
 		std::vector<VkShaderModule> shaders;
 		std::vector<VkPipelineShaderStageCreateInfo> stagesInfo;
 
 		std::string directoryPath = "C:\\Developer\\JetBrains\\Clion\\Proj\\TheCreators\\";
 	public:
+		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+
 		std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
 		std::vector<VkDynamicState> dynamicStates;
 		std::vector<VkViewport> viewports;
@@ -71,6 +71,7 @@ namespace vk
 		operator VkPipeline() const {
 			return pipeline;
 		}
+
 		Material();
 		~Material();
 		void Setup(
