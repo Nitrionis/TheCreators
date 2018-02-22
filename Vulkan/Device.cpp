@@ -447,8 +447,6 @@ void vk::Device::CreateImage(
 	uint32_t              mipLevels,
 	uint32_t              arrayLayers)
 {
-	assert(data != nullptr);
-
 	VkImageCreateInfo imageInfo = {};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	imageInfo.pNext = nullptr;
@@ -467,7 +465,7 @@ void vk::Device::CreateImage(
 	imageInfo.initialLayout         = VK_IMAGE_LAYOUT_UNDEFINED;
 
 	if (vkCreateImage(logicalDevice, &imageInfo, nullptr, &image->image) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create image!");
+		throw std::runtime_error("Failed to create textureImage!");
 	}
 
 	VkMemoryRequirements memReqs;
@@ -479,7 +477,7 @@ void vk::Device::CreateImage(
 	allocInfo.memoryTypeIndex = GetMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	if (vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &image->memory) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to allocate image memory!");
+		throw std::runtime_error("Failed to allocate textureImage memory!");
 	}
 
 	vkBindImageMemory(logicalDevice, image->image, image->memory, 0);
@@ -491,6 +489,9 @@ void vk::Device::CreateImage(
 	image->alignment            = memReqs.alignment;
 	image->size                 = allocInfo.allocationSize;
 
+	if (data == nullptr)
+		return;
+
 	vk::Buffer stagingBuffer;
 
 	CreateBuffer(
@@ -501,7 +502,7 @@ void vk::Device::CreateImage(
 		data
 	);
 
-	SetImageBarrier(image,
+	SetImageBarrier(image->image,
 		VK_IMAGE_LAYOUT_UNDEFINED,         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		0,                                 VK_ACCESS_TRANSFER_WRITE_BIT,
 		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT
@@ -509,7 +510,7 @@ void vk::Device::CreateImage(
 
 	CopyImage(&stagingBuffer, image);
 
-	SetImageBarrier(image,
+	SetImageBarrier(image->image,
 	    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 	    VK_ACCESS_TRANSFER_WRITE_BIT,         VK_ACCESS_SHADER_READ_BIT,
 	    VK_PIPELINE_STAGE_TRANSFER_BIT,       VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
@@ -558,7 +559,7 @@ void vk::Device::CopyImage(vk::Buffer *src, vk::Image *dst, VkBufferImageCopy *c
 }
 
 void vk::Device::SetImageBarrier(
-	vk::Image*               image,
+	VkImage                  image,
 	VkImageLayout            oldLayout,
 	VkImageLayout            newLayout,
 	VkAccessFlags            srcAccessMask,
@@ -572,7 +573,7 @@ void vk::Device::SetImageBarrier(
 {
 	VkImageMemoryBarrier barrier = {};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.image = image->image;
+	barrier.image = image;
 
 	barrier.oldLayout = oldLayout;
 	barrier.newLayout = newLayout;
@@ -616,4 +617,71 @@ void vk::Device::SetImageBarrier(
 			1, &barrier
 		);
 	}
+}
+
+void vk::Device::CopyImage(vk::Image *src, vk::Image *dst, VkImageCopy *copyRegion, VkCommandPool commandPool, VkQueue commandQueue) {
+	assert(dst->size >= src->size);
+	assert(dst->image && src->image);
+
+	VkCommandBuffer copyCmdBuffer = CreateCommandBuffer(
+		commandPool == VK_NULL_HANDLE ? this->defaultPool : commandPool,
+		VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		true
+	);
+	VkImageCopy region = {};
+	if (copyRegion == nullptr) {
+		region.extent = src->extent;
+		region.dstOffset = {0, 0, 0};
+		region.srcOffset = {0, 0, 0};
+		region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.dstSubresource.baseArrayLayer = 0;
+		region.dstSubresource.layerCount     = 1;
+		region.dstSubresource.mipLevel       = 0;
+		region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.srcSubresource.baseArrayLayer = 0;
+		region.srcSubresource.layerCount     = 1;
+		region.srcSubresource.mipLevel       = 0;
+	}
+	else {
+		region = *copyRegion;
+	}
+	vkCmdCopyImage(
+		copyCmdBuffer,
+		src->image,
+		VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+		dst->image,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		1,
+		&region
+	);
+	ExecuteCommandBuffer(
+		copyCmdBuffer,
+		commandPool == VK_NULL_HANDLE ? this->defaultPool : commandPool,
+		commandQueue == VK_NULL_HANDLE ? this->defaultQueue : commandQueue
+	);
+}
+
+void vk::Device::CopyImage(VkImage src, VkImage dst, VkImageCopy *copyRegion, VkCommandPool commandPool, VkQueue commandQueue) {
+	assert(dst && src);
+
+	VkCommandBuffer copyCmdBuffer = CreateCommandBuffer(
+		commandPool == VK_NULL_HANDLE ? this->defaultPool : commandPool,
+		VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		true
+	);
+
+	vkCmdCopyImage(
+		copyCmdBuffer,
+		src,
+		VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+		dst,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		1,
+		copyRegion
+	);
+	ExecuteCommandBuffer(
+		copyCmdBuffer,
+		commandPool == VK_NULL_HANDLE ? this->defaultPool : commandPool,
+		commandQueue == VK_NULL_HANDLE ? this->defaultQueue : commandQueue
+	);
 }

@@ -106,11 +106,27 @@ namespace vk
 		    VkQueue            commandQueue = VK_NULL_HANDLE
 	    );
 
+	    void CopyImage(
+		    vk::Image*    src,
+		    vk::Image*    dst,
+		    VkImageCopy*  copyRegion = nullptr,
+		    VkCommandPool commandPool = VK_NULL_HANDLE,
+		    VkQueue       commandQueue = VK_NULL_HANDLE
+	    );
+
+	    void CopyImage(
+		    VkImage       src,
+		    VkImage       dst,
+		    VkImageCopy*  copyRegion = nullptr,
+		    VkCommandPool commandPool = VK_NULL_HANDLE,
+		    VkQueue       commandQueue = VK_NULL_HANDLE
+	    );
+
 	    void CreateImage(
 		    vk::Image*            image,
 		    VkExtent3D            extent,
 		    VkDeviceSize          size,
-		    void*                 data,
+		    void*                 data        = nullptr,
 		    VkImageUsageFlags     usage       = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		    VkFormat              format      = VK_FORMAT_R8G8B8A8_UNORM,
 		    VkSampleCountFlagBits samples     = VK_SAMPLE_COUNT_1_BIT,
@@ -120,7 +136,7 @@ namespace vk
 	    );
 
 	    void SetImageBarrier(
-		    vk::Image*               image,
+		    VkImage                  image,
 		    VkImageLayout            oldLayout,
 		    VkImageLayout            newLayout,
 		    VkAccessFlags            srcAccessMask,

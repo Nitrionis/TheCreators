@@ -28,6 +28,47 @@ SceneRenderer::SceneRenderer() {
 
 	auto dtime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
 	std::cout << "Draw Count: " << drawCount << " Time: " << dtime.count() << " ms" << std::endl;
+
+	VkImageCopy region = {};
+	region.extent = {1920, 1080, 1};
+	region.dstOffset = {0, 0, 0};
+	region.srcOffset = {0, 0, 0};
+	region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	region.dstSubresource.baseArrayLayer = 0;
+	region.dstSubresource.layerCount     = 1;
+	region.dstSubresource.mipLevel       = 0;
+	region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	region.srcSubresource.baseArrayLayer = 0;
+	region.srcSubresource.layerCount     = 1;
+	region.srcSubresource.mipLevel       = 0;
+
+	vulkan.swapChain.AcquireNext(vulkan.imageAvailableSemaphore);
+	uint32_t imageIndex = vulkan.swapChain.currImageIndex;
+
+	vulkan.device.SetImageBarrier(vulkan.intermediateImage.image,
+	    VK_IMAGE_LAYOUT_UNDEFINED,         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+	    0,                                 VK_ACCESS_TRANSFER_READ_BIT,
+	    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT
+	);
+	vulkan.device.SetImageBarrier(vulkan.swapChain.images[imageIndex],
+	    VK_IMAGE_LAYOUT_UNDEFINED,         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	    0,                                 VK_ACCESS_TRANSFER_WRITE_BIT,
+	    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT
+	);
+
+	vulkan.device.CopyImage(
+		vulkan.intermediateImage.image,
+		vulkan.swapChain.images[imageIndex],
+		&region
+	);
+
+	vulkan.device.SetImageBarrier(vulkan.swapChain.images[imageIndex],
+	    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+	    VK_ACCESS_TRANSFER_WRITE_BIT,         VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
+	    VK_PIPELINE_STAGE_TRANSFER_BIT,       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+	);
+	system("pause");
+	vulkan.swapChain.Present(vulkan.commandQueue, VK_NULL_HANDLE);
 }
 
 SceneRenderer::~SceneRenderer() {
@@ -35,12 +76,13 @@ SceneRenderer::~SceneRenderer() {
 }
 
 void SceneRenderer::CreateCommandBuffers() {
+
 	vulkan.commandQueue = vulkan.device.GetQueue(vulkan.device.indices.graphicsFamily);
 
 	VkCommandPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolInfo.queueFamilyIndex = vulkan.device.indices.graphicsFamily;
-	poolInfo.flags = 0; // Optional
+	poolInfo.flags = VK_FLAGS_NONE;
 
 	if (vkCreateCommandPool(vulkan.device, &poolInfo, nullptr, vulkan.commandPool.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create command pool!");
@@ -72,9 +114,10 @@ void SceneRenderer::CreateCommandBuffers() {
 		renderPassInfo.renderArea.offset = {0, 0};
 		renderPassInfo.renderArea.extent = vulkan.swapChain.extent;
 
-		VkClearValue clearColor = {0.1f, 0.1f, 0.1f * i, 1.0f};
-		renderPassInfo.clearValueCount = 1;
-		renderPassInfo.pClearValues = &clearColor;
+		VkClearValue clearColor[] = {{0.157f, 0.173f, 0.191f, 1.0f},
+		                             {0.000f, 1.000f, 0.000f, 1.0f}};
+		renderPassInfo.clearValueCount = 2;
+		renderPassInfo.pClearValues = clearColor;
 
 		vkCmdBeginRenderPass(vulkan.commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -96,9 +139,9 @@ void SceneRenderer::CreateCommandBuffers() {
 }
 
 void SceneRenderer::DrawScene() {
-	//auto startTime = std::chrono::high_resolution_clock::now();
+	auto startTime = std::chrono::high_resolution_clock::now();
 
-	vkQueueWaitIdle(vulkan.commandQueue);
+	//vkQueueWaitIdle(vulkan.commandQueue);
 
 	vulkan.swapChain.AcquireNext(vulkan.imageAvailableSemaphore);
 	uint32_t i = vulkan.swapChain.currImageIndex;
@@ -121,7 +164,7 @@ void SceneRenderer::DrawScene() {
 	}
 	vulkan.swapChain.Present(vulkan.commandQueue, vulkan.renderFinishedSemaphore);
 
-	//auto endTime = std::chrono::high_resolution_clock::now();
-	//auto dtime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-	//std::cout << dtime.count() << std::endl;
+	auto endTime = std::chrono::high_resolution_clock::now();
+	auto dtime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+	std::cout << dtime.count() << std::endl;
 }

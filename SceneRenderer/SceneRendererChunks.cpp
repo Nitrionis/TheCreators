@@ -17,6 +17,8 @@ void SceneRenderer::Chunks::CreateMaterials() {
 	vulkan.material.pipelineLayoutInfo.setLayoutCount = 1;
 	vulkan.material.pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
+	vulkan.material.colorBlendAttachments.push_back(vulkan.material.colorBlendAttachments[0]);
+
 	vulkan.material.Setup(
 		vulkan.device,
 		vulkan.renderPass,
@@ -36,7 +38,7 @@ void SceneRenderer::Chunks::CreateImage() {
 		1
 	};
 	vulkan.device.CreateImage(
-		&vulkan.image,
+		&vulkan.textureImage,
 		imageExtent,
 		imageLoader.size,
 		imageLoader.pixels
@@ -47,7 +49,7 @@ void SceneRenderer::Chunks::CreateTextureImageView() {
 
 	VkImageViewCreateInfo viewInfo = {};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	viewInfo.image = vulkan.image.image;
+	viewInfo.image = vulkan.textureImage.image;
 	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
 	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -56,8 +58,8 @@ void SceneRenderer::Chunks::CreateTextureImageView() {
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.layerCount = 1;
 
-	if (vkCreateImageView(vulkan.device, &viewInfo, nullptr, &vulkan.image.view) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create texture image view!");
+	if (vkCreateImageView(vulkan.device, &viewInfo, nullptr, &vulkan.textureImage.view) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create texture textureImage view!");
 	}
 }
 
@@ -130,7 +132,7 @@ void SceneRenderer::Chunks::CreateDescriptors() {
 
 	VkDescriptorImageInfo imageInfo = {};
 	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	imageInfo.imageView = vulkan.image.view;
+	imageInfo.imageView = vulkan.textureImage.view;
 	imageInfo.sampler = sampler;
 
 	VkWriteDescriptorSet descriptorWrite = {};
@@ -143,4 +145,12 @@ void SceneRenderer::Chunks::CreateDescriptors() {
 	descriptorWrite.pImageInfo = &imageInfo;
 
 	vkUpdateDescriptorSets(vulkan.device, 1, &descriptorWrite, 0, nullptr);
+}
+
+void SceneRenderer::Chunks::CreateIndicesBuffer() {
+	/*for (int i = 0; i < indicesBuffers.size(); i++) {
+		vulkan.device.CreateBuffer(
+
+		);
+	}*/
 }

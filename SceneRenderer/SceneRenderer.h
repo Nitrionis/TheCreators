@@ -43,19 +43,19 @@ public:
 
 	} settings;
 
-	class VulkanSharedDate : Noncopyable {
+	class VulkanSharedDate {
 	public:
-		vk::Instance instance;
-		vk::Debug debug;
+		vk::Instance    instance;
+		vk::Debug       debug;
 
-		vk::Device device;
-		vk::SwapChain swapChain;
+		vk::Device      device;
+		vk::SwapChain   swapChain;
 
 		vk::PhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
-		vk::CommandQueue commandQueue = VK_NULL_HANDLE;
-		vk::UniqueCommandPool commandPool{device, vkDestroyCommandPool};
-		std::vector<vk::CommandBuffer> commandBuffers;
+		vk::CommandQueue                commandQueue    = VK_NULL_HANDLE;
+		vk::UniqueCommandPool           commandPool     {device, vkDestroyCommandPool};
+		std::vector<vk::CommandBuffer>  commandBuffers;
 
 		std::vector<vk::UniqueFramebuffer> framebuffers;
 
@@ -64,8 +64,9 @@ public:
 		vk::UniqueSemaphore imageAvailableSemaphore{device, vkDestroySemaphore};
 		vk::UniqueSemaphore renderFinishedSemaphore{device, vkDestroySemaphore};
 
-		vk::Material material;
-		vk::Image image;
+		vk::Material    material;
+		vk::Image       textureImage;
+		vk::Image       intermediateImage;
 
 		void Initialize(VulkanObjectsSettings& settings);
 	private:
@@ -77,21 +78,26 @@ public:
 
 	} vulkan;
 
-	class Chunks : Noncopyable {
+	class Chunks {
 	private:
 		VulkanSharedDate& vulkan;
 		VulkanObjectsSettings& settings;
 	public:
-		vk::UniqueHandle<VkSampler> sampler{vulkan.device, vkDestroySampler};
-		vk::UniqueHandle<VkDescriptorSetLayout> descriptorSetLayout{vulkan.device, vkDestroyDescriptorSetLayout};
-		vk::UniqueHandle<VkDescriptorPool> descriptorPool{vulkan.device, vkDestroyDescriptorPool};
-		VkDescriptorSet descriptorSet;
+		vk::UniqueHandle<VkSampler>             sampler             {vulkan.device, vkDestroySampler};
+		vk::UniqueHandle<VkDescriptorSetLayout> descriptorSetLayout {vulkan.device, vkDestroyDescriptorSetLayout};
+		vk::UniqueHandle<VkDescriptorPool>      descriptorPool      {vulkan.device, vkDestroyDescriptorPool};
+
+		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+
+		vk::Buffer indicesBuffers;
+
 
 		Chunks(VulkanSharedDate& vko, VulkanObjectsSettings& settings)
 			: vulkan(vko), settings(settings) {}
 
 		void Initialize();
 	private:
+		void CreateIndicesBuffer();
 		void CreateMaterials();
 		void CreateImage();
 		void CreateTextureImageView();

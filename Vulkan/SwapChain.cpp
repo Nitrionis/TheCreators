@@ -9,20 +9,16 @@ vk::SwapChain::~SwapChain() {
 }
 
 void vk::SwapChain::Destroy() {
-	if (swapChain != VK_NULL_HANDLE)
-	{
-		for (uint32_t i = 0; i < imageCount; i++)
-		{
+	if (swapChain != VK_NULL_HANDLE) {
+		for (uint32_t i = 0; i < imageCount; i++) {
 			if (views[i] != VK_NULL_HANDLE)
 				vkDestroyImageView(logicalDevice, views[i], nullptr);
 		}
 	}
-	if (swapChain != VK_NULL_HANDLE)
-	{
+	if (swapChain != VK_NULL_HANDLE) {
 		vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr);
 	}
-	if (surface != VK_NULL_HANDLE)
-	{
+	if (surface != VK_NULL_HANDLE) {
 		vkDestroySurfaceKHR(instance, surface, nullptr);
 	}
 }
@@ -38,31 +34,25 @@ void vk::SwapChain::Setup() {
 
 	// If the surface format list only includes one entry with VK_FORMAT_UNDEFINED,
 	// there is no preferered format, so we assume VK_FORMAT_B8G8R8A8_UNORM
-	if ((formatCount == 1) && (surfaceFormats[0].format == VK_FORMAT_UNDEFINED))
-	{
+	if ((formatCount == 1) && (surfaceFormats[0].format == VK_FORMAT_UNDEFINED)) {
 		colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
 		colorSpace = surfaceFormats[0].colorSpace;
 	}
-	else
-	{
+	else {
 		// iterate over the list of available surface format and
 		// check for the presence of VK_FORMAT_B8G8R8A8_UNORM
 		bool found_B8G8R8A8_UNORM = false;
-		for (auto&& surfaceFormat : surfaceFormats)
-		{
-			if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_UNORM)
-			{
+		for (auto&& surfaceFormat : surfaceFormats) {
+			if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_UNORM) {
 				colorFormat = surfaceFormat.format;
 				colorSpace = surfaceFormat.colorSpace;
 				found_B8G8R8A8_UNORM = true;
 				break;
 			}
 		}
-
 		// in case VK_FORMAT_B8G8R8A8_UNORM is not available
 		// select the first available color format
-		if (!found_B8G8R8A8_UNORM)
-		{
+		if (!found_B8G8R8A8_UNORM) {
 			colorFormat = surfaceFormats[0].format;
 			colorSpace = surfaceFormats[0].colorSpace;
 		}
@@ -83,13 +73,11 @@ void vk::SwapChain::Setup() {
 
 	extent = {};
 	// If width (and height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
-	if (surfCaps.currentExtent.width == (uint32_t)-1)
-	{
+	if (surfCaps.currentExtent.width == (uint32_t)-1) {
 		extent.width = window.width;
 		extent.height = window.height;
 	}
-	else
-	{
+	else {
 		extent = surfCaps.currentExtent;
 		window.width = surfCaps.currentExtent.width;
 		window.height = surfCaps.currentExtent.height;
@@ -98,39 +86,31 @@ void vk::SwapChain::Setup() {
 
 	presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
-	for (size_t i = 0; i < presentModeCount; i++)
-	{
-		if (presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
-		{
+	for (size_t i = 0; i < presentModeCount; i++) {
+		if (presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
 			presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
 			break;
 		}
-
-		if ((presentMode != VK_PRESENT_MODE_MAILBOX_KHR) && (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR))
-		{
+		if ((presentMode != VK_PRESENT_MODE_MAILBOX_KHR) && (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR)) {
 			presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
 		}
 	}
 
 
 	uint32_t desiredImagesCount = surfCaps.minImageCount + 1;
-	if ((surfCaps.maxImageCount > 0) && (desiredImagesCount > surfCaps.maxImageCount))
-	{
+	if ((surfCaps.maxImageCount > 0) && (desiredImagesCount > surfCaps.maxImageCount)) {
 		desiredImagesCount = surfCaps.maxImageCount;
 	}
 
 	// Find the transformation of the surface
 	VkSurfaceTransformFlagsKHR preTransform;
-	if (surfCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
-	{
+	if (surfCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
 		// We prefer a non-rotated transform
 		preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 	}
-	else
-	{
+	else {
 		preTransform = surfCaps.currentTransform;
 	}
-
 	// Find a supported composite alpha format (not all devices support alpha opaque)
 	VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	// Simply select the first composite alpha format available
@@ -155,7 +135,7 @@ void vk::SwapChain::Setup() {
 	swapchainCI.imageFormat = colorFormat;
 	swapchainCI.imageColorSpace = colorSpace;
 	swapchainCI.imageExtent = { extent.width, extent.height };
-	swapchainCI.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	swapchainCI.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	swapchainCI.preTransform = (VkSurfaceTransformFlagBitsKHR)preTransform;
 	swapchainCI.imageArrayLayers = 1;
 	swapchainCI.presentMode = presentMode;
@@ -189,8 +169,7 @@ void vk::SwapChain::Setup() {
 	imageViewCI.subresourceRange.levelCount = 1;
 	imageViewCI.subresourceRange.baseArrayLayer = 0;
 	imageViewCI.subresourceRange.layerCount = 1;
-	for (uint32_t i = 0; i < imageCount; i++)
-	{
+	for (uint32_t i = 0; i < imageCount; i++) {
 		imageViewCI.image = images[i];
 		VK_THROW_IF_FAILED(vkCreateImageView(logicalDevice, &imageViewCI, NULL, &views[i]));
 	}
@@ -257,7 +236,7 @@ VkResult vk::SwapChain::Present(VkQueue queue, VkSemaphore waitSemaphore)
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = &swapChain;
 	presentInfo.pImageIndices = &currImageIndex;
-	// Check if a wait semaphore has been specified to wait for before presenting the image
+	// Check if a wait semaphore has been specified to wait for before presenting the textureImage
 	if (waitSemaphore != VK_NULL_HANDLE)
 	{
 		presentInfo.pWaitSemaphores = &waitSemaphore;
