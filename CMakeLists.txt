@@ -12,9 +12,9 @@ set(SOURCE_FILES
         Scene.h
         SceneRenderer/SceneRenderer.cpp
         SceneRenderer/SceneRenderer.h
-        SceneRenderer/SceneRendererChunks.cpp
-        SceneRenderer/SceneRendererVulkanObjects.cpp
-        SceneRenderer/SceneRendererSettings.cpp
+        SceneRenderer/Chunks.cpp
+        SceneRenderer/VulkanSharedDate.cpp
+        SceneRenderer/Settings.cpp
         Vulkan/Device.cpp
         Vulkan/Device.h
         Vulkan/Buffer.h
@@ -34,7 +34,7 @@ set(SOURCE_FILES
         Vulkan/UniqueHandle.h
         ImageLoader.cpp
         ImageLoader.h
-        stb_image.h)
+        stb_image.h SceneRenderer/Bloor.cpp)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/Vulkan/)

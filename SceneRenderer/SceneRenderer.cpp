@@ -29,46 +29,7 @@ SceneRenderer::SceneRenderer() {
 	auto dtime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
 	std::cout << "Draw Count: " << drawCount << " Time: " << dtime.count() << " ms" << std::endl;
 
-	VkImageCopy region = {};
-	region.extent = {1920, 1080, 1};
-	region.dstOffset = {0, 0, 0};
-	region.srcOffset = {0, 0, 0};
-	region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	region.dstSubresource.baseArrayLayer = 0;
-	region.dstSubresource.layerCount     = 1;
-	region.dstSubresource.mipLevel       = 0;
-	region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	region.srcSubresource.baseArrayLayer = 0;
-	region.srcSubresource.layerCount     = 1;
-	region.srcSubresource.mipLevel       = 0;
-
-	vulkan.swapChain.AcquireNext(vulkan.imageAvailableSemaphore);
-	uint32_t imageIndex = vulkan.swapChain.currImageIndex;
-
-	vulkan.device.SetImageBarrier(vulkan.intermediateImage.image,
-	    VK_IMAGE_LAYOUT_UNDEFINED,         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-	    0,                                 VK_ACCESS_TRANSFER_READ_BIT,
-	    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT
-	);
-	vulkan.device.SetImageBarrier(vulkan.swapChain.images[imageIndex],
-	    VK_IMAGE_LAYOUT_UNDEFINED,         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-	    0,                                 VK_ACCESS_TRANSFER_WRITE_BIT,
-	    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT
-	);
-
-	vulkan.device.CopyImage(
-		vulkan.intermediateImage.image,
-		vulkan.swapChain.images[imageIndex],
-		&region
-	);
-
-	vulkan.device.SetImageBarrier(vulkan.swapChain.images[imageIndex],
-	    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-	    VK_ACCESS_TRANSFER_WRITE_BIT,         VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
-	    VK_PIPELINE_STAGE_TRANSFER_BIT,       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-	);
-	system("pause");
-	vulkan.swapChain.Present(vulkan.commandQueue, VK_NULL_HANDLE);
+	vulkan.ShowIntermediateImage();
 }
 
 SceneRenderer::~SceneRenderer() {
@@ -121,12 +82,12 @@ void SceneRenderer::CreateCommandBuffers() {
 
 		vkCmdBeginRenderPass(vulkan.commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindPipeline(vulkan.commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, vulkan.material);
+		vkCmdBindPipeline(vulkan.commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, chunks.material.ground);
 
 		vkCmdBindDescriptorSets(
 			vulkan.commandBuffers[i],
 			VK_PIPELINE_BIND_POINT_GRAPHICS,
-			vulkan.material.pipelineLayout, 0, 1, &chunks.descriptorSet, 0, nullptr);
+			chunks.material.ground.pipelineLayout, 0, 1, &chunks.descriptorSet, 0, nullptr);
 
 		vkCmdDraw(vulkan.commandBuffers[i], 3, 1, 0, 0);
 

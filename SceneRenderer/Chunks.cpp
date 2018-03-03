@@ -2,54 +2,55 @@
 #include "ImageLoader.h"
 
 void SceneRenderer::Chunks::Initialize() {
-	CreateImage();
-	CreateTextureImageView();
+	CreateAtlasImage();
+	CreateAtlasImageView();
 	CreateSamplers();
 	CreateDescriptors();
-	CreateMaterials();
+	CreateMaterialGround();
 }
 
-void SceneRenderer::Chunks::CreateMaterials() {
+void SceneRenderer::Chunks::CreateMaterialGround() {
 
-	vulkan.material.viewports[0] = vk::initialize::viewportDefault(vulkan.swapChain.extent);
-	vulkan.material.scissors[0] = vk::initialize::scissorDefault(vulkan.swapChain.extent);
+	material.ground.viewports[0] = vk::initialize::viewportDefault(vulkan.swapChain.extent);
+	material.ground.scissors[0] = vk::initialize::scissorDefault(vulkan.swapChain.extent);
 
-	vulkan.material.pipelineLayoutInfo.setLayoutCount = 1;
-	vulkan.material.pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+	material.ground.pipelineLayoutInfo.setLayoutCount = 1;
+	material.ground.pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
-	vulkan.material.colorBlendAttachments.push_back(vulkan.material.colorBlendAttachments[0]);
+	material.ground.colorBlendAttachments.push_back(material.ground.colorBlendAttachments[0]);
 
-	vulkan.material.Setup(
+	material.ground.Setup(
 		vulkan.device,
 		vulkan.renderPass,
 		settings.chunkShaderNames,
 		settings.chunkShaderUsage,
 		0
 	);
-	vk::Material::CreateMaterials(&vulkan.material, 1);
+	vk::Material::CreateMaterials(&material.ground, 1);
 }
 
-void SceneRenderer::Chunks::CreateImage() {
+void SceneRenderer::Chunks::CreateAtlasImage() {
 
 	ImageLoader imageLoader("C:\\Developer\\JetBrains\\Clion\\Proj\\TheCreators\\Textures\\texture.png");
+
 	VkExtent3D imageExtent = {
 		static_cast<uint32_t>(imageLoader.width),
 		static_cast<uint32_t>(imageLoader.height),
 		1
 	};
 	vulkan.device.CreateImage(
-		&vulkan.textureImage,
+		&image.atlas,
 		imageExtent,
 		imageLoader.size,
 		imageLoader.pixels
 	);
 }
 
-void SceneRenderer::Chunks::CreateTextureImageView() {
+void SceneRenderer::Chunks::CreateAtlasImageView() {
 
 	VkImageViewCreateInfo viewInfo = {};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	viewInfo.image = vulkan.textureImage.image;
+	viewInfo.image = image.atlas.image;
 	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
 	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -58,7 +59,7 @@ void SceneRenderer::Chunks::CreateTextureImageView() {
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.layerCount = 1;
 
-	if (vkCreateImageView(vulkan.device, &viewInfo, nullptr, &vulkan.textureImage.view) != VK_SUCCESS) {
+	if (vkCreateImageView(vulkan.device, &viewInfo, nullptr, &image.atlas.view) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create texture textureImage view!");
 	}
 }
@@ -106,23 +107,9 @@ void SceneRenderer::Chunks::CreateDescriptors() {
 		throw std::runtime_error("Failed to create descriptor set layout!");
 	}
 
-	VkDescriptorPoolSize poolSize = {};
-	poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSize.descriptorCount = 1;
-
-	VkDescriptorPoolCreateInfo poolInfo = {};
-	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	poolInfo.poolSizeCount = 1;
-	poolInfo.pPoolSizes = &poolSize;
-	poolInfo.maxSets = 1;
-
-	if (vkCreateDescriptorPool(vulkan.device, &poolInfo, nullptr, descriptorPool.replace()) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create descriptor pool!");
-	}
-
 	VkDescriptorSetAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorPool = vulkan.descriptorPool;
 	allocInfo.descriptorSetCount = 1;
 	allocInfo.pSetLayouts = &descriptorSetLayout;
 
@@ -132,7 +119,7 @@ void SceneRenderer::Chunks::CreateDescriptors() {
 
 	VkDescriptorImageInfo imageInfo = {};
 	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	imageInfo.imageView = vulkan.textureImage.view;
+	imageInfo.imageView = image.atlas.view;
 	imageInfo.sampler = sampler;
 
 	VkWriteDescriptorSet descriptorWrite = {};
@@ -145,12 +132,4 @@ void SceneRenderer::Chunks::CreateDescriptors() {
 	descriptorWrite.pImageInfo = &imageInfo;
 
 	vkUpdateDescriptorSets(vulkan.device, 1, &descriptorWrite, 0, nullptr);
-}
-
-void SceneRenderer::Chunks::CreateIndicesBuffer() {
-	/*for (int i = 0; i < indicesBuffers.size(); i++) {
-		vulkan.device.CreateBuffer(
-
-		);
-	}*/
 }

@@ -38,6 +38,14 @@ public:
 			VK_SHADER_STAGE_VERTEX_BIT,
 			VK_SHADER_STAGE_FRAGMENT_BIT
 		};
+		std::vector<const char*> bloorHorShaderNames = {
+			"Shaders\\BloorHorizontal\\vert.spv",
+			"Shaders\\BloorHorizontal\\frag.spv"
+		};
+		std::vector<VkShaderStageFlagBits> bloorHorShaderUsage = {
+			VK_SHADER_STAGE_VERTEX_BIT,
+			VK_SHADER_STAGE_FRAGMENT_BIT
+		};
 	private:
 		void InitExtensions();
 
@@ -64,18 +72,24 @@ public:
 		vk::UniqueSemaphore imageAvailableSemaphore{device, vkDestroySemaphore};
 		vk::UniqueSemaphore renderFinishedSemaphore{device, vkDestroySemaphore};
 
-		vk::Material    material;
-		vk::Image       textureImage;
-		vk::Image       intermediateImage;
+		vk::UniqueHandle<VkDescriptorPool> descriptorPool{device, vkDestroyDescriptorPool};
+
+		struct {
+			vk::Image intermediate[2];
+		}image;
+
+		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 
 		void Initialize(VulkanObjectsSettings& settings);
+		void ShowIntermediateImage();
 	private:
 		void PickPhysicalDevice();
 
+		void CreateDescriptorPool(); // TODO
 		void CreateSemaphores();
 		void CreateRenderPass();
+		void CreateIntermediateImages();
 		void CreateFrameBuffers();
-
 	} vulkan;
 
 	class Chunks {
@@ -83,26 +97,78 @@ public:
 		VulkanSharedDate& vulkan;
 		VulkanObjectsSettings& settings;
 	public:
-		vk::UniqueHandle<VkSampler>             sampler             {vulkan.device, vkDestroySampler};
-		vk::UniqueHandle<VkDescriptorSetLayout> descriptorSetLayout {vulkan.device, vkDestroyDescriptorSetLayout};
-		vk::UniqueHandle<VkDescriptorPool>      descriptorPool      {vulkan.device, vkDestroyDescriptorPool};
-
-		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-
-		vk::Buffer indicesBuffers;
-
-
 		Chunks(VulkanSharedDate& vko, VulkanObjectsSettings& settings)
 			: vulkan(vko), settings(settings) {}
 
+		struct {
+			vk::Material ground;
+		}material;
+
+		struct {
+			vk::Image atlas;
+		}image;
+
+		vk::UniqueHandle<VkSampler> sampler{vulkan.device, vkDestroySampler};
+
+		vk::UniqueHandle<VkDescriptorSetLayout> descriptorSetLayout{vulkan.device, vkDestroyDescriptorSetLayout};
+
+		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+
+		/*struct {
+			vk::Buffer indices;
+			vk::Buffer vertices;
+		}buffer;*/
+
 		void Initialize();
 	private:
-		void CreateIndicesBuffer();
-		void CreateMaterials();
-		void CreateImage();
-		void CreateTextureImageView();
+		void CreateMaterialGround();
+		void CreateAtlasImage();
+		void CreateAtlasImageView();
 		void CreateSamplers();
 		void CreateDescriptors();
 
 	} chunks{vulkan, settings};
+
+	class Bloor {
+	private:
+		VulkanSharedDate& vulkan;
+		VulkanObjectsSettings& settings;
+	public:
+		Bloor(VulkanSharedDate& vko, VulkanObjectsSettings& settings)
+			: vulkan(vko), settings(settings) {}
+
+		struct {
+			vk::Material horizontal;
+			vk::Material vertical;
+		}material;
+
+		vk::UniqueHandle<VkSampler> samplerHor{vulkan.device, vkDestroySampler};
+		vk::UniqueHandle<VkSampler> samplerVer{vulkan.device, vkDestroySampler};
+
+		vk::UniqueHandle<VkDescriptorSetLayout> descSetLayoutHor{vulkan.device, vkDestroyDescriptorSetLayout};
+		vk::UniqueHandle<VkDescriptorSetLayout> descSetLayoutVer{vulkan.device, vkDestroyDescriptorSetLayout};
+
+		VkDescriptorSet descSetHor = VK_NULL_HANDLE;
+		VkDescriptorSet descSetVer = VK_NULL_HANDLE;
+
+		void Initialize();
+	private:
+		void CreateDescriptorSet();
+		void CreateMaterials();
+
+	} bloor{vulkan, settings};
+
+	class UserInterface {
+	private:
+		VulkanSharedDate& vulkan;
+		VulkanObjectsSettings& settings;
+	public:
+
+
+		UserInterface(VulkanSharedDate& vko, VulkanObjectsSettings& settings)
+			: vulkan(vko), settings(settings) {}
+
+	private:
+
+	} ui{vulkan, settings};
 };
