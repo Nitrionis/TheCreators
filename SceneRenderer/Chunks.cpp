@@ -5,7 +5,7 @@ void SceneRenderer::Chunks::Initialize() {
 	CreateAtlasImage();
 	CreateAtlasImageView();
 	CreateSamplers();
-	CreateDescriptors();
+	CreateDescriptorSet();
 	CreateMaterialGround();
 }
 
@@ -15,18 +15,16 @@ void SceneRenderer::Chunks::CreateMaterialGround() {
 	material.ground.scissors[0] = vk::initialize::scissorDefault(vulkan.swapChain.extent);
 
 	material.ground.pipelineLayoutInfo.setLayoutCount = 1;
-	material.ground.pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-
-	material.ground.colorBlendAttachments.push_back(material.ground.colorBlendAttachments[0]);
+	material.ground.pipelineLayoutInfo.pSetLayouts = &descSetLayout;
 
 	material.ground.Setup(
 		vulkan.device,
 		vulkan.renderPass,
 		settings.chunkShaderNames,
 		settings.chunkShaderUsage,
-		0
+		(int)Stage::DrawChunks
 	);
-	vk::Material::CreateMaterials(&material.ground, 1);
+	vk::Material::CreateMaterials(&material.ground);
 }
 
 void SceneRenderer::Chunks::CreateAtlasImage() {
@@ -89,7 +87,7 @@ void SceneRenderer::Chunks::CreateSamplers() {
 	}
 }
 
-void SceneRenderer::Chunks::CreateDescriptors() {
+void SceneRenderer::Chunks::CreateDescriptorSet() {
 
 	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
 	samplerLayoutBinding.binding = 0;
@@ -103,7 +101,7 @@ void SceneRenderer::Chunks::CreateDescriptors() {
 	layoutInfo.bindingCount = 1;
 	layoutInfo.pBindings = &samplerLayoutBinding;
 
-	if (vkCreateDescriptorSetLayout(vulkan.device, &layoutInfo, nullptr, descriptorSetLayout.replace()) != VK_SUCCESS) {
+	if (vkCreateDescriptorSetLayout(vulkan.device, &layoutInfo, nullptr, descSetLayout.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create descriptor set layout!");
 	}
 
@@ -111,7 +109,7 @@ void SceneRenderer::Chunks::CreateDescriptors() {
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = vulkan.descriptorPool;
 	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &descriptorSetLayout;
+	allocInfo.pSetLayouts = &descSetLayout;
 
 	if (vkAllocateDescriptorSets(vulkan.device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate descriptor set!");
@@ -132,4 +130,70 @@ void SceneRenderer::Chunks::CreateDescriptors() {
 	descriptorWrite.pImageInfo = &imageInfo;
 
 	vkUpdateDescriptorSets(vulkan.device, 1, &descriptorWrite, 0, nullptr);
+}
+
+void SceneRenderer::Chunks::CreateRenderPasses() {
+
+	VkAttachmentDescription colorAttachment = {};
+
+	colorAttachment.flags = VK_FLAGS_NONE;
+	colorAttachment.format = vulkan.swapChain.colorFormat;
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.loadOp =  VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp =  VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout =   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+	renderPass.colorAttachments.push_back(colorAttachment);
+
+	VkAttachmentReference attachmentRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+
+	vk::Subpass subpass;
+	subpass.colorAttachmentRefs.push_back(attachmentRef);
+	subpass.description.flags = VK_FLAGS_NONE;
+	subpass.description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+
+	renderPass.subpasses.push_back(subpass);
+
+	std::vector<VkSubpassDependency> dependencies(2);
+
+	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[0].dstSubpass = 0;
+	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	dependencies[1].srcSubpass = 0;
+	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	renderPass.dependencies = dependencies;
+
+	renderPass.DoFinalInitialise();
+}
+
+void SceneRenderer::Chunks::CreateFramebuffers() {
+
+	VkImageView attachments[] = {image.intermediate[0].view};
+
+	VkFramebufferCreateInfo framebufferInfo = {};
+	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	framebufferInfo.renderPass = renderPass;
+	framebufferInfo.attachmentCount = 1;
+	framebufferInfo.pAttachments = attachments;
+	framebufferInfo.width = swapChain.extent.width;
+	framebufferInfo.height = swapChain.extent.height;
+	framebufferInfo.layers = 1;
+
+	if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, bloor.framebuffer.horizontal.replace()) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create framebuffer!");
+	}
 }

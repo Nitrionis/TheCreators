@@ -9,6 +9,12 @@ namespace vk
 		VkRect2D scissorDefault(VkExtent2D extent);
 	};
 
+	struct Subpass{
+		std::vector<VkAttachmentReference>    inputAttachmentsRefs;
+		std::vector<VkAttachmentReference>    colorAttachmentRefs;
+		VkSubpassDescription                  description;
+	};
+
 	class RenderPass {
 		friend class Material;
 	private:
@@ -16,8 +22,7 @@ namespace vk
 		VkRenderPass renderPass = VK_NULL_HANDLE;
 	public:
 		std::vector<VkAttachmentDescription>  colorAttachments;
-		std::vector<VkAttachmentReference>    colorAttachmentRefs;
-		std::vector<VkSubpassDescription>     subPasses;
+		std::vector<Subpass>                  subpasses;
 		std::vector<VkSubpassDependency>      dependencies;
 
 		operator VkRenderPass() const {
@@ -37,7 +42,9 @@ namespace vk
 				renderPass = VK_NULL_HANDLE;
 			}
 		}
+		void InitializeDefault();
 		void DoFinalInitialise();
+		void Reset();
 	};
 
 	class Material {
@@ -83,7 +90,7 @@ namespace vk
 		);
 		void Destroy();
 
-		static void CreateMaterials(vk::Material* materials, uint32_t size);
+		static void CreateMaterials(vk::Material* materials, uint32_t size = 1);
 
 	private:
 		std::vector<char> LoadFile(const char* filename);

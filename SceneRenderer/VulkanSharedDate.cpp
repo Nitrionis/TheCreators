@@ -23,57 +23,8 @@ void SceneRenderer::VulkanSharedDate::Initialize(SceneRenderer::VulkanObjectsSet
 	));
 	swapChain.Setup();
 	CreateDescriptorPool();
-	CreateRenderPass();
 	CreateIntermediateImages();
-	CreateFrameBuffers();
 	CreateSemaphores();
-}
-
-void SceneRenderer::VulkanSharedDate::CreateFrameBuffers() {
-
-	framebuffers.resize(swapChain.imageCount, vk::UniqueFramebuffer{device, vkDestroyFramebuffer});
-	for (size_t i = 0; i < swapChain.imageCount; i++)
-	{
-		VkImageView attachments[] = {swapChain.views[i], image.intermediate[0].view};
-
-		VkFramebufferCreateInfo framebufferInfo = {};
-		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = renderPass;
-		framebufferInfo.attachmentCount = 2;
-		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = swapChain.extent.width;
-		framebufferInfo.height = swapChain.extent.height;
-		framebufferInfo.layers = 1;
-
-		if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, framebuffers[i].replace()) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create framebuffer!");
-		}
-	}
-}
-
-void SceneRenderer::VulkanSharedDate::CreateRenderPass() {
-	VkAttachmentDescription colorAttachment = {};
-		colorAttachment.flags = VK_FLAGS_NONE;
-		colorAttachment.format = swapChain.colorFormat;
-		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		colorAttachment.loadOp =  VK_ATTACHMENT_LOAD_OP_CLEAR;
-		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		colorAttachment.stencilLoadOp =  VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		colorAttachment.finalLayout =   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-	renderPass.colorAttachments.push_back(colorAttachment);
-
-	VkAttachmentReference colorAttachmentRef = {};
-		colorAttachmentRef.attachment = 1;
-		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	renderPass.colorAttachmentRefs.push_back(colorAttachmentRef);
-
-	renderPass.subPasses[0].colorAttachmentCount = static_cast<uint32_t>(renderPass.colorAttachmentRefs.size());
-	renderPass.subPasses[0].pColorAttachments = renderPass.colorAttachmentRefs.data();
-
-	renderPass.colorAttachments[0].format = swapChain.colorFormat;
-	renderPass.DoFinalInitialise();
 }
 
 void SceneRenderer::VulkanSharedDate::CreateSemaphores() {
@@ -136,7 +87,7 @@ void SceneRenderer::VulkanSharedDate::ShowIntermediateImage() {
 	    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT
 	);
 	device.CopyImage(
-		image.intermediate[0].image,
+		image.intermediate[(int)Stage::DrawChunks].image,
 		swapChain.images[imageIndex],
 		&region
 	);
@@ -150,6 +101,7 @@ void SceneRenderer::VulkanSharedDate::ShowIntermediateImage() {
 }
 
 void SceneRenderer::VulkanSharedDate::CreateIntermediateImages() {
+
 	VkExtent3D imageExtent = {
 		static_cast<uint32_t>(1920),
 		static_cast<uint32_t>(1080),
@@ -161,7 +113,7 @@ void SceneRenderer::VulkanSharedDate::CreateIntermediateImages() {
 			imageExtent,
 			imageExtent.width * imageExtent.height * 4,
 			nullptr,
-			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_SAMPLED_BIT,
 			swapChain.colorFormat
 		);
 		VkImageViewCreateInfo viewInfo = {};

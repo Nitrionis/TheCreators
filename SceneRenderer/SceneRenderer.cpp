@@ -11,6 +11,7 @@ SceneRenderer::SceneRenderer() {
 		settings.Initialize();
 		vulkan.Initialize(settings);
 		chunks.Initialize();
+		bloor.Initialize();
 		CreateCommandBuffers();
 		//ImageLoader imageLoader("C:\\Developer\\JetBrains\\Clion\\Proj\\TheCreators\\Textures\\texture.png");
 	}
@@ -19,15 +20,6 @@ SceneRenderer::SceneRenderer() {
 		std::cout << std::endl << e.what() << std::endl;
 	}
 	DrawScene();
-
-	const int drawCount = 10;
-	auto startTime = std::chrono::high_resolution_clock::now();
-	for (int i = 0; i < drawCount; i++)
-		DrawScene();
-	auto endTime = std::chrono::high_resolution_clock::now();
-
-	auto dtime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-	std::cout << "Draw Count: " << drawCount << " Time: " << dtime.count() << " ms" << std::endl;
 
 	vulkan.ShowIntermediateImage();
 }
@@ -75,10 +67,11 @@ void SceneRenderer::CreateCommandBuffers() {
 		renderPassInfo.renderArea.offset = {0, 0};
 		renderPassInfo.renderArea.extent = vulkan.swapChain.extent;
 
-		VkClearValue clearColor[] = {{0.157f, 0.173f, 0.191f, 1.0f},
-		                             {0.000f, 1.000f, 0.000f, 1.0f}};
-		renderPassInfo.clearValueCount = 2;
-		renderPassInfo.pClearValues = clearColor;
+		VkClearValue clearColors[] = {{1.000f, 0.000f, 0.000f, 1.0f},
+		                              {0.000f, 1.000f, 0.000f, 1.0f},
+		                              {0.000f, 0.000f, 1.000f, 1.0f}};
+		renderPassInfo.clearValueCount = 3;
+		renderPassInfo.pClearValues = clearColors;
 
 		vkCmdBeginRenderPass(vulkan.commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -87,9 +80,33 @@ void SceneRenderer::CreateCommandBuffers() {
 		vkCmdBindDescriptorSets(
 			vulkan.commandBuffers[i],
 			VK_PIPELINE_BIND_POINT_GRAPHICS,
-			chunks.material.ground.pipelineLayout, 0, 1, &chunks.descriptorSet, 0, nullptr);
+			chunks.material.ground.pipelineLayout, (uint32_t)Stage::DrawChunks, 1, &chunks.descriptorSet, 0, nullptr);
 
-		vkCmdDraw(vulkan.commandBuffers[i], 3, 1, 0, 0);
+		vkCmdDraw(vulkan.commandBuffers[i], 6, 1, 0, 0);
+
+		vkCmdNextSubpass(vulkan.commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
+
+		// TODO subpass Bloor Horizontal
+		vkCmdBindPipeline(vulkan.commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, bloor.material.horizontal);
+
+		vkCmdBindDescriptorSets(
+			vulkan.commandBuffers[i],
+			VK_PIPELINE_BIND_POINT_GRAPHICS,
+			bloor.material.horizontal.pipelineLayout, (uint32_t)Stage::BloorHor, 1, &bloor.descSetHor, 0, nullptr);
+
+		vkCmdDraw(vulkan.commandBuffers[i], 6, 1, 0, 0);
+
+		vkCmdNextSubpass(vulkan.commandBuffers[i], VK_SUBPASS_CONTENTS_INLINE);
+
+		// TODO subpass Bloor Vertical
+		vkCmdBindPipeline(vulkan.commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, bloor.material.vertical);
+
+		vkCmdBindDescriptorSets(
+			vulkan.commandBuffers[i],
+			VK_PIPELINE_BIND_POINT_GRAPHICS,
+			bloor.material.vertical.pipelineLayout, (uint32_t)Stage::BloorVer, 1, &bloor.descSetVer, 0, nullptr);
+
+		vkCmdDraw(vulkan.commandBuffers[i], 6, 1, 0, 0);
 
 		vkCmdEndRenderPass(vulkan.commandBuffers[i]);
 

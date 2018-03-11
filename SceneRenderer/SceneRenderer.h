@@ -1,6 +1,13 @@
 #pragma once
 #include "StandardBehavior.h"
 
+enum class Stage : int {
+	DrawChunks  = 0,
+	BloorHor   = 1,
+	BloorVer   = 2,
+	Three = 3
+};
+
 class SceneRenderer : public BaseCode
 {
 public:
@@ -46,6 +53,14 @@ public:
 			VK_SHADER_STAGE_VERTEX_BIT,
 			VK_SHADER_STAGE_FRAGMENT_BIT
 		};
+		std::vector<const char*> bloorVerShaderNames = {
+			"Shaders\\BloorVertical\\vert.spv",
+			"Shaders\\BloorVertical\\frag.spv"
+		};
+		std::vector<VkShaderStageFlagBits> bloorVerShaderUsage = {
+			VK_SHADER_STAGE_VERTEX_BIT,
+			VK_SHADER_STAGE_FRAGMENT_BIT
+		};
 	private:
 		void InitExtensions();
 
@@ -67,8 +82,6 @@ public:
 
 		std::vector<vk::UniqueFramebuffer> framebuffers;
 
-		vk::RenderPass renderPass{device};
-
 		vk::UniqueSemaphore imageAvailableSemaphore{device, vkDestroySemaphore};
 		vk::UniqueSemaphore renderFinishedSemaphore{device, vkDestroySemaphore};
 
@@ -78,18 +91,14 @@ public:
 			vk::Image intermediate[2];
 		}image;
 
-		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-
 		void Initialize(VulkanObjectsSettings& settings);
 		void ShowIntermediateImage();
 	private:
 		void PickPhysicalDevice();
 
-		void CreateDescriptorPool(); // TODO
+		void CreateDescriptorPool();
 		void CreateSemaphores();
-		void CreateRenderPass();
 		void CreateIntermediateImages();
-		void CreateFrameBuffers();
 	} vulkan;
 
 	class Chunks {
@@ -108,24 +117,23 @@ public:
 			vk::Image atlas;
 		}image;
 
+		vk::RenderPass renderPass{vulkan.device};
+
 		vk::UniqueHandle<VkSampler> sampler{vulkan.device, vkDestroySampler};
 
-		vk::UniqueHandle<VkDescriptorSetLayout> descriptorSetLayout{vulkan.device, vkDestroyDescriptorSetLayout};
+		vk::UniqueHandle<VkDescriptorSetLayout> descSetLayout{vulkan.device, vkDestroyDescriptorSetLayout};
 
 		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 
-		/*struct {
-			vk::Buffer indices;
-			vk::Buffer vertices;
-		}buffer;*/
-
 		void Initialize();
 	private:
+		void CreateRenderPasses();
+		void CreateFramebuffers();
 		void CreateMaterialGround();
 		void CreateAtlasImage();
 		void CreateAtlasImageView();
 		void CreateSamplers();
-		void CreateDescriptors();
+		void CreateDescriptorSet();
 
 	} chunks{vulkan, settings};
 
@@ -142,8 +150,17 @@ public:
 			vk::Material vertical;
 		}material;
 
-		vk::UniqueHandle<VkSampler> samplerHor{vulkan.device, vkDestroySampler};
-		vk::UniqueHandle<VkSampler> samplerVer{vulkan.device, vkDestroySampler};
+		struct {
+			vk::RenderPass horizontal;
+			vk::RenderPass vertical;
+		}renderPass;
+
+		struct {
+			vk::UniqueFramebuffer horizontal;
+			vk::UniqueFramebuffer vertical;
+		}framebuffer;
+
+		vk::UniqueHandle<VkSampler> sampler{vulkan.device, vkDestroySampler};
 
 		vk::UniqueHandle<VkDescriptorSetLayout> descSetLayoutHor{vulkan.device, vkDestroyDescriptorSetLayout};
 		vk::UniqueHandle<VkDescriptorSetLayout> descSetLayoutVer{vulkan.device, vkDestroyDescriptorSetLayout};
@@ -151,10 +168,13 @@ public:
 		VkDescriptorSet descSetHor = VK_NULL_HANDLE;
 		VkDescriptorSet descSetVer = VK_NULL_HANDLE;
 
-		void Initialize();
+		void Initialize(); // TODO
 	private:
+		void CreateSamplers();
 		void CreateDescriptorSet();
 		void CreateMaterials();
+		void CreateRenderPasses();
+		void CreateFramebuffers();
 
 	} bloor{vulkan, settings};
 
