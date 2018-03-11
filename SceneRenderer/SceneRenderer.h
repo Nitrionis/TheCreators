@@ -19,7 +19,7 @@ private:
 	void CreateCommandBuffers();
 
 public:
-	class VulkanObjectsSettings {
+	static class VulkanObjectsSettings {
 	public:
 		void Initialize();
 
@@ -66,7 +66,7 @@ public:
 
 	} settings;
 
-	class VulkanSharedDate {
+	static class VulkanSharedDate {
 	public:
 		vk::Instance    instance;
 		vk::Debug       debug;
@@ -79,8 +79,6 @@ public:
 		vk::CommandQueue                commandQueue    = VK_NULL_HANDLE;
 		vk::UniqueCommandPool           commandPool     {device, vkDestroyCommandPool};
 		std::vector<vk::CommandBuffer>  commandBuffers;
-
-		std::vector<vk::UniqueFramebuffer> framebuffers;
 
 		vk::UniqueSemaphore imageAvailableSemaphore{device, vkDestroySemaphore};
 		vk::UniqueSemaphore renderFinishedSemaphore{device, vkDestroySemaphore};
@@ -99,16 +97,11 @@ public:
 		void CreateDescriptorPool();
 		void CreateSemaphores();
 		void CreateIntermediateImages();
+
 	} vulkan;
 
 	class Chunks {
-	private:
-		VulkanSharedDate& vulkan;
-		VulkanObjectsSettings& settings;
 	public:
-		Chunks(VulkanSharedDate& vko, VulkanObjectsSettings& settings)
-			: vulkan(vko), settings(settings) {}
-
 		struct {
 			vk::Material ground;
 		}material;
@@ -118,6 +111,8 @@ public:
 		}image;
 
 		vk::RenderPass renderPass{vulkan.device};
+
+		vk::UniqueFramebuffer framebuffer{vulkan.device, vkDestroyFramebuffer};
 
 		vk::UniqueHandle<VkSampler> sampler{vulkan.device, vkDestroySampler};
 
@@ -135,29 +130,23 @@ public:
 		void CreateSamplers();
 		void CreateDescriptorSet();
 
-	} chunks{vulkan, settings};
+	} chunks;
 
 	class Bloor {
-	private:
-		VulkanSharedDate& vulkan;
-		VulkanObjectsSettings& settings;
 	public:
-		Bloor(VulkanSharedDate& vko, VulkanObjectsSettings& settings)
-			: vulkan(vko), settings(settings) {}
-
 		struct {
 			vk::Material horizontal;
 			vk::Material vertical;
 		}material;
 
 		struct {
-			vk::RenderPass horizontal;
-			vk::RenderPass vertical;
+			vk::RenderPass horizontal{vulkan.device};
+			vk::RenderPass vertical{vulkan.device};
 		}renderPass;
 
 		struct {
-			vk::UniqueFramebuffer horizontal;
-			vk::UniqueFramebuffer vertical;
+			vk::UniqueFramebuffer horizontal{vulkan.device, vkDestroyFramebuffer};
+			std::vector<vk::UniqueFramebuffer> vertical;
 		}framebuffer;
 
 		vk::UniqueHandle<VkSampler> sampler{vulkan.device, vkDestroySampler};
@@ -168,7 +157,7 @@ public:
 		VkDescriptorSet descSetHor = VK_NULL_HANDLE;
 		VkDescriptorSet descSetVer = VK_NULL_HANDLE;
 
-		void Initialize(); // TODO
+		void Initialize();
 	private:
 		void CreateSamplers();
 		void CreateDescriptorSet();
@@ -176,19 +165,10 @@ public:
 		void CreateRenderPasses();
 		void CreateFramebuffers();
 
-	} bloor{vulkan, settings};
+	} bloor;
 
 	class UserInterface {
 	private:
-		VulkanSharedDate& vulkan;
-		VulkanObjectsSettings& settings;
-	public:
 
-
-		UserInterface(VulkanSharedDate& vko, VulkanObjectsSettings& settings)
-			: vulkan(vko), settings(settings) {}
-
-	private:
-
-	} ui{vulkan, settings};
+	} ui;
 };

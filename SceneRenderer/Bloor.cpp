@@ -8,16 +8,14 @@ void SceneRenderer::Bloor::CreateMaterials() {
 	material.horizontal.pipelineLayoutInfo.setLayoutCount = 1;
 	material.horizontal.pipelineLayoutInfo.pSetLayouts = &descSetLayoutHor;
 
-	material.horizontal.colorBlendAttachments.push_back(material.horizontal.colorBlendAttachments[0]);
-
 	material.horizontal.Setup(
 		vulkan.device,
-		vulkan.renderPass,
+		renderPass.horizontal,
 		settings.bloorHorShaderNames,
 		settings.bloorHorShaderUsage,
-		(int)Stage::BloorHor
+		0
 	);
-	vk::Material::CreateMaterials(&material.horizontal, 1);
+	vk::Material::CreateMaterials(&material.horizontal);
 
 
 	material.vertical.viewports[0] = vk::initialize::viewportDefault(vulkan.swapChain.extent);
@@ -26,16 +24,14 @@ void SceneRenderer::Bloor::CreateMaterials() {
 	material.vertical.pipelineLayoutInfo.setLayoutCount = 1;
 	material.vertical.pipelineLayoutInfo.pSetLayouts = &descSetLayoutVer;
 
-	material.vertical.colorBlendAttachments.push_back(material.vertical.colorBlendAttachments[0]);
-
 	material.vertical.Setup(
 		vulkan.device,
-		vulkan.renderPass,
+		renderPass.vertical,
 		settings.bloorVerShaderNames,
 		settings.bloorVerShaderUsage,
-		(int)Stage::BloorVer
+		0
 	);
-	vk::Material::CreateMaterials(&material.vertical, 1);
+	vk::Material::CreateMaterials(&material.vertical);
 }
 
 void SceneRenderer::Bloor::CreateDescriptorSet() {
@@ -154,6 +150,8 @@ void SceneRenderer::Bloor::CreateSamplers() {
 }
 
 void SceneRenderer::Bloor::Initialize() {
+	CreateRenderPasses();
+	CreateFramebuffers();
 	CreateSamplers();
 	CreateDescriptorSet();
 	CreateMaterials();
@@ -191,8 +189,10 @@ void SceneRenderer::Bloor::CreateRenderPasses() {
 
 	vk::Subpass subpass;
 	subpass.colorAttachmentRefs.push_back(attachmentRef);
-	subpass.description.flags = VK_FLAGS_NONE;
-	subpass.description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	VkSubpassDescription description = {};
+	description.flags = VK_FLAGS_NONE;
+	description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.description = description;
 
 	renderPass.horizontal.subpasses.push_back(subpass);
 	renderPass.vertical.subpasses.push_back(subpass);
@@ -239,21 +239,21 @@ void SceneRenderer::Bloor::CreateFramebuffers() {
 		throw std::runtime_error("failed to create framebuffer!");
 	}
 
-	vulkan.framebuffers.resize(vulkan.swapChain.imageCount, vk::UniqueFramebuffer{vulkan.device, vkDestroyFramebuffer});
+	framebuffer.vertical.resize(vulkan.swapChain.imageCount, vk::UniqueFramebuffer{vulkan.device, vkDestroyFramebuffer});
 	for (size_t i = 0; i < vulkan.swapChain.imageCount; i++)
 	{
-		VkImageView attachments[] = {vulkan.swapChain.images[i]};
+		VkImageView attachments[] = {vulkan.swapChain.views[i]};
 
 		VkFramebufferCreateInfo framebufferInfo = {};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = vulkan.renderPass;
+		framebufferInfo.renderPass = renderPass.vertical;
 		framebufferInfo.attachmentCount = 1;
 		framebufferInfo.pAttachments = attachments;
 		framebufferInfo.width = vulkan.swapChain.extent.width;
 		framebufferInfo.height = vulkan.swapChain.extent.height;
 		framebufferInfo.layers = 1;
 
-		if (vkCreateFramebuffer(vulkan.device, &framebufferInfo, nullptr, vulkan.framebuffers[i].replace()) != VK_SUCCESS) {
+		if (vkCreateFramebuffer(vulkan.device, &framebufferInfo, nullptr, framebuffer.vertical[i].replace()) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create framebuffer!");
 		}
 	}

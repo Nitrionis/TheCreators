@@ -2,6 +2,8 @@
 #include "ImageLoader.h"
 
 void SceneRenderer::Chunks::Initialize() {
+	CreateRenderPasses();
+	CreateFramebuffers();
 	CreateAtlasImage();
 	CreateAtlasImageView();
 	CreateSamplers();
@@ -19,10 +21,10 @@ void SceneRenderer::Chunks::CreateMaterialGround() {
 
 	material.ground.Setup(
 		vulkan.device,
-		vulkan.renderPass,
+		renderPass,
 		settings.chunkShaderNames,
 		settings.chunkShaderUsage,
-		(int)Stage::DrawChunks
+		0
 	);
 	vk::Material::CreateMaterials(&material.ground);
 }
@@ -152,8 +154,10 @@ void SceneRenderer::Chunks::CreateRenderPasses() {
 
 	vk::Subpass subpass;
 	subpass.colorAttachmentRefs.push_back(attachmentRef);
-	subpass.description.flags = VK_FLAGS_NONE;
-	subpass.description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	VkSubpassDescription description = {};
+	description.flags = VK_FLAGS_NONE;
+	description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.description = description;
 
 	renderPass.subpasses.push_back(subpass);
 
@@ -182,18 +186,18 @@ void SceneRenderer::Chunks::CreateRenderPasses() {
 
 void SceneRenderer::Chunks::CreateFramebuffers() {
 
-	VkImageView attachments[] = {image.intermediate[0].view};
+	VkImageView attachments[] = {vulkan.image.intermediate[0].view};
 
 	VkFramebufferCreateInfo framebufferInfo = {};
 	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 	framebufferInfo.renderPass = renderPass;
 	framebufferInfo.attachmentCount = 1;
 	framebufferInfo.pAttachments = attachments;
-	framebufferInfo.width = swapChain.extent.width;
-	framebufferInfo.height = swapChain.extent.height;
+	framebufferInfo.width = vulkan.swapChain.extent.width;
+	framebufferInfo.height = vulkan.swapChain.extent.height;
 	framebufferInfo.layers = 1;
 
-	if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, bloor.framebuffer.horizontal.replace()) != VK_SUCCESS) {
+	if (vkCreateFramebuffer(vulkan.device, &framebufferInfo, nullptr, framebuffer.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create framebuffer!");
 	}
 }
