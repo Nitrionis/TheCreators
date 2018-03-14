@@ -186,13 +186,13 @@ void SceneRenderer::Chunks::CreateRenderPasses() {
 
 void SceneRenderer::Chunks::CreateFramebuffers() {
 
-	VkImageView attachments[] = {vulkan.image.intermediate[0].view};
+	std::array<VkImageView, 1> attachments = {vulkan.image.intermediate[0].view};
 
 	VkFramebufferCreateInfo framebufferInfo = {};
 	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 	framebufferInfo.renderPass = renderPass;
-	framebufferInfo.attachmentCount = 1;
-	framebufferInfo.pAttachments = attachments;
+	framebufferInfo.attachmentCount = attachments.size();
+	framebufferInfo.pAttachments = attachments.data();
 	framebufferInfo.width = vulkan.swapChain.extent.width;
 	framebufferInfo.height = vulkan.swapChain.extent.height;
 	framebufferInfo.layers = 1;

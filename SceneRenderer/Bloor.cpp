@@ -2,8 +2,8 @@
 
 void SceneRenderer::Bloor::CreateMaterials() {
 
-	material.horizontal.viewports[0] = vk::initialize::viewportDefault(vulkan.swapChain.extent);
-	material.horizontal.scissors[0] = vk::initialize::scissorDefault(vulkan.swapChain.extent);
+	material.horizontal.viewports[0] = vk::initialize::viewportDefault({1920/4, 1080/4}/*vulkan.swapChain.extent*/);
+	material.horizontal.scissors[0] = vk::initialize::scissorDefault({1920/4, 1080/4}/*vulkan.swapChain.extent*/);
 
 	material.horizontal.pipelineLayoutInfo.setLayoutCount = 1;
 	material.horizontal.pipelineLayoutInfo.pSetLayouts = &descSetLayoutHor;
@@ -18,8 +18,8 @@ void SceneRenderer::Bloor::CreateMaterials() {
 	vk::Material::CreateMaterials(&material.horizontal);
 
 
-	material.vertical.viewports[0] = vk::initialize::viewportDefault(vulkan.swapChain.extent);
-	material.vertical.scissors[0] = vk::initialize::scissorDefault(vulkan.swapChain.extent);
+	material.vertical.viewports[0] = vk::initialize::viewportDefault({1920/4, 1080/4}/*vulkan.swapChain.extent*/);
+	material.vertical.scissors[0] = vk::initialize::scissorDefault({1920/4, 1080/4}/*vulkan.swapChain.extent*/);
 
 	material.vertical.pipelineLayoutInfo.setLayoutCount = 1;
 	material.vertical.pipelineLayoutInfo.pSetLayouts = &descSetLayoutVer;
@@ -230,16 +230,23 @@ void SceneRenderer::Bloor::CreateFramebuffers() {
 	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 	framebufferInfo.renderPass = renderPass.horizontal;
 	framebufferInfo.attachmentCount = 1;
-	framebufferInfo.pAttachments = attachments;
-	framebufferInfo.width = vulkan.swapChain.extent.width;
-	framebufferInfo.height = vulkan.swapChain.extent.height;
+	framebufferInfo.pAttachments = &vulkan.image.intermediate[1].view;
+	framebufferInfo.width = vulkan.swapChain.extent.width / 4; // TODO resize
+	framebufferInfo.height = vulkan.swapChain.extent.height / 4; // TODO resize
 	framebufferInfo.layers = 1;
 
 	if (vkCreateFramebuffer(vulkan.device, &framebufferInfo, nullptr, framebuffer.horizontal.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create framebuffer!");
 	}
 
-	framebuffer.vertical.resize(vulkan.swapChain.imageCount, vk::UniqueFramebuffer{vulkan.device, vkDestroyFramebuffer});
+	framebufferInfo.renderPass = renderPass.vertical;
+	framebufferInfo.pAttachments = &vulkan.image.intermediate[0].view;
+
+	if (vkCreateFramebuffer(vulkan.device, &framebufferInfo, nullptr, framebuffer.vertical.replace()) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create framebuffer!");
+	}
+
+	framebuffer.final.resize(vulkan.swapChain.imageCount, vk::UniqueFramebuffer{vulkan.device, vkDestroyFramebuffer});
 	for (size_t i = 0; i < vulkan.swapChain.imageCount; i++)
 	{
 		VkImageView attachments[] = {vulkan.swapChain.views[i]};
@@ -253,7 +260,7 @@ void SceneRenderer::Bloor::CreateFramebuffers() {
 		framebufferInfo.height = vulkan.swapChain.extent.height;
 		framebufferInfo.layers = 1;
 
-		if (vkCreateFramebuffer(vulkan.device, &framebufferInfo, nullptr, framebuffer.vertical[i].replace()) != VK_SUCCESS) {
+		if (vkCreateFramebuffer(vulkan.device, &framebufferInfo, nullptr, framebuffer.final[i].replace()) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create framebuffer!");
 		}
 	}

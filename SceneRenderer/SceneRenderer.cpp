@@ -23,6 +23,11 @@ SceneRenderer::SceneRenderer() {
 		std::cout << std::endl << e.what() << std::endl;
 	}
 	DrawScene();
+	DrawScene();
+	DrawScene();
+	DrawScene();
+	DrawScene();
+	DrawScene();
 
 	vulkan.ShowIntermediateImage();
 }
@@ -88,6 +93,7 @@ void SceneRenderer::CreateCommandBuffers() {
 		vkCmdEndRenderPass(vulkan.commandBuffers[i]);
 
 		// TODO subpass Bloor Horizontal
+		renderPassInfo.renderArea.extent = {1920/4, 1080/4};
 		renderPassInfo.renderPass = bloor.renderPass.horizontal;
 		renderPassInfo.framebuffer = bloor.framebuffer.horizontal;
 
@@ -105,8 +111,9 @@ void SceneRenderer::CreateCommandBuffers() {
 		vkCmdEndRenderPass(vulkan.commandBuffers[i]);
 
 		// TODO subpass Bloor Vertical
+		renderPassInfo.renderArea.extent = {1920/4, 1080/4};
 		renderPassInfo.renderPass = bloor.renderPass.vertical;
-		renderPassInfo.framebuffer = bloor.framebuffer.vertical[i];
+		renderPassInfo.framebuffer = bloor.framebuffer.final[i];
 
 		vkCmdBeginRenderPass(vulkan.commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 

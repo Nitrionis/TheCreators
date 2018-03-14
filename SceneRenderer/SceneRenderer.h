@@ -89,6 +89,10 @@ public:
 			vk::Image intermediate[2];
 		}image;
 
+		//vk::RenderPass finalPass{vulkan.device};
+
+		//std::vector<vk::UniqueFramebuffer> framebuffers;
+
 		void Initialize(VulkanObjectsSettings& settings);
 		void ShowIntermediateImage();
 	private:
@@ -97,6 +101,9 @@ public:
 		void CreateDescriptorPool();
 		void CreateSemaphores();
 		void CreateIntermediateImages();
+		// TODO is disable because
+		//void CreateRenderPasses();
+		//void CreateFramebuffers();
 
 	} vulkan;
 
@@ -146,7 +153,8 @@ public:
 
 		struct {
 			vk::UniqueFramebuffer horizontal{vulkan.device, vkDestroyFramebuffer};
-			std::vector<vk::UniqueFramebuffer> vertical;
+			vk::UniqueFramebuffer vertical{vulkan.device, vkDestroyFramebuffer};
+			std::vector<vk::UniqueFramebuffer> final;
 		}framebuffer;
 
 		vk::UniqueHandle<VkSampler> sampler{vulkan.device, vkDestroySampler};
@@ -159,11 +167,11 @@ public:
 
 		void Initialize();
 	private:
+		void CreateRenderPasses();
+		void CreateFramebuffers();
 		void CreateSamplers();
 		void CreateDescriptorSet();
 		void CreateMaterials();
-		void CreateRenderPasses();
-		void CreateFramebuffers();
 
 	} bloor;
 
