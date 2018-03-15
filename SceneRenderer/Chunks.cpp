@@ -152,11 +152,12 @@ void SceneRenderer::Chunks::CreateRenderPasses() {
 
 	VkAttachmentReference attachmentRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
 
-	vk::Subpass subpass;
-	subpass.colorAttachmentRefs.push_back(attachmentRef);
 	VkSubpassDescription description = {};
 	description.flags = VK_FLAGS_NONE;
 	description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+
+	vk::Subpass subpass;
+	subpass.colorAttachmentRefs.push_back(attachmentRef);
 	subpass.description = description;
 
 	renderPass.subpasses.push_back(subpass);
@@ -200,4 +201,31 @@ void SceneRenderer::Chunks::CreateFramebuffers() {
 	if (vkCreateFramebuffer(vulkan.device, &framebufferInfo, nullptr, framebuffer.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create framebuffer!");
 	}
+}
+
+void SceneRenderer::Chunks::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
+
+	VkRenderPassBeginInfo renderPassInfo = {};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassInfo.renderPass = renderPass;
+	renderPassInfo.framebuffer = framebuffer;
+	renderPassInfo.renderArea.offset = {0, 0};
+	renderPassInfo.renderArea.extent = vulkan.swapChain.extent;
+
+	std::array<VkClearValue, 1> clearColors = {VkClearValue{1.000f, 0.000f, 0.000f, 1.0f}};
+	renderPassInfo.clearValueCount = clearColors.size();
+	renderPassInfo.pClearValues = clearColors.data();
+
+	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material.ground);
+
+	vkCmdBindDescriptorSets(
+		commandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		material.ground.pipelineLayout, (uint32_t)Stage::DrawChunks, 1, &descriptorSet, 0, nullptr);
+
+	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
+
+	vkCmdEndRenderPass(commandBuffer);
 }

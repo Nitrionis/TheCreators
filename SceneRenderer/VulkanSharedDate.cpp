@@ -64,9 +64,9 @@ void SceneRenderer::VulkanSharedDate::PickPhysicalDevice() {
 	throw std::runtime_error("Failed to find physical device!");
 }
 
-void SceneRenderer::VulkanSharedDate::ShowIntermediateImage() {
+void SceneRenderer::VulkanSharedDate::ShowIntermediateImage(uint32_t index) {
 	VkImageCopy region = {};
-	region.extent = {1920, 1080, 1};
+	region.extent = image.intermediate[index].extent;
 	region.dstOffset = {0, 0, 0};
 	region.srcOffset = {0, 0, 0};
 	region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -81,18 +81,32 @@ void SceneRenderer::VulkanSharedDate::ShowIntermediateImage() {
 	swapChain.AcquireNext(imageAvailableSemaphore);
 	uint32_t imageIndex = swapChain.currImageIndex;
 
+	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.pNext = NULL;
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &imageAvailableSemaphore;
+	submitInfo.pWaitDstStageMask = waitStages;
+	submitInfo.commandBufferCount = 0;
+
+	if (vkQueueSubmit(vulkan.commandQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to submit draw command buffer!");
+	}
+
 	device.SetImageBarrier(swapChain.images[imageIndex],
 	    VK_IMAGE_LAYOUT_UNDEFINED,         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 	    0,                                 VK_ACCESS_TRANSFER_WRITE_BIT,
 	    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT
 	);
-	device.SetImageBarrier(image.intermediate[1].image,
+	device.SetImageBarrier(image.intermediate[index].image,
 	    VK_IMAGE_LAYOUT_UNDEFINED,         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 	    0,                                 VK_ACCESS_TRANSFER_READ_BIT,
 	    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT
 	);
 	device.CopyImage(
-		image.intermediate[1].image,
+		image.intermediate[index].image,
 		swapChain.images[imageIndex],
 		&region
 	);
@@ -112,7 +126,7 @@ void SceneRenderer::VulkanSharedDate::CreateIntermediateImages() {
 		static_cast<uint32_t>(swapChain.extent.height),
 		1
 	};
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; i < 3; i++) {
 		device.CreateImage(
 			&image.intermediate[i],
 			imageExtent,
@@ -142,11 +156,11 @@ void SceneRenderer::VulkanSharedDate::CreateDescriptorPool() {
 
 	VkDescriptorPoolSize poolSize = {};
 	poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSize.descriptorCount = 3;
+	poolSize.descriptorCount = 5;
 
 	VkDescriptorPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	poolInfo.maxSets = 3;
+	poolInfo.maxSets = 5;
 	poolInfo.poolSizeCount = 1;
 	poolInfo.pPoolSizes = &poolSize;
 
@@ -154,75 +168,3 @@ void SceneRenderer::VulkanSharedDate::CreateDescriptorPool() {
 		throw std::runtime_error("Failed to create descriptor pool!");
 	}
 }
-
-/*void SceneRenderer::VulkanSharedDate::CreateFramebuffers() {
-
-	framebuffers.resize(vulkan.swapChain.imageCount, vk::UniqueFramebuffer{vulkan.device, vkDestroyFramebuffer});
-	for (size_t i = 0; i < vulkan.swapChain.imageCount; i++)
-	{
-		VkImageView attachments[] = {vulkan.swapChain.views[i]};
-
-		VkFramebufferCreateInfo framebufferInfo = {};
-		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = finalPass;
-		framebufferInfo.attachmentCount = 1;
-		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = vulkan.swapChain.extent.width;
-		framebufferInfo.height = vulkan.swapChain.extent.height;
-		framebufferInfo.layers = 1;
-
-		if (vkCreateFramebuffer(vulkan.device, &framebufferInfo, nullptr, framebuffers[i].replace()) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create framebuffer!");
-		}
-	}
-}
-
-void SceneRenderer::VulkanSharedDate::CreateRenderPasses() {
-
-	VkAttachmentDescription colorAttachment = {};
-
-	colorAttachment.flags = VK_FLAGS_NONE;
-	colorAttachment.format = vulkan.swapChain.colorFormat;
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp =  VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.stencilLoadOp =  VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout =   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-	finalPass.colorAttachments.push_back(colorAttachment);
-
-	VkAttachmentReference attachmentRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-
-	vk::Subpass subpass;
-	subpass.colorAttachmentRefs.push_back(attachmentRef);
-	VkSubpassDescription description = {};
-	description.flags = VK_FLAGS_NONE;
-	description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.description = description;
-
-	finalPass.subpasses.push_back(subpass);
-
-	std::vector<VkSubpassDependency> dependencies(2);
-
-	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[0].dstSubpass = 0;
-	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-	dependencies[1].srcSubpass = 0;
-	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-	finalPass.dependencies = dependencies;
-
-	finalPass.DoFinalInitialise();
-}*/

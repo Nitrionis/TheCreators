@@ -482,9 +482,9 @@ void vk::Device::CreateImage(
 
 	vkBindImageMemory(logicalDevice, image->image, image->memory, 0);
 
+	image->memoryPropertyFlags  = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 	image->device               = logicalDevice;
 	image->usageFlags           = usage;
-	image->memoryPropertyFlags  = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 	image->extent               = extent;
 	image->alignment            = memReqs.alignment;
 	image->size                 = allocInfo.allocationSize;

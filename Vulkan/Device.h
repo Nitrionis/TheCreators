@@ -11,8 +11,8 @@ namespace vk
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
         VkDevice         logicalDevice  = VK_NULL_HANDLE;
 
-	    VkPhysicalDeviceProperties       properties;
-        VkPhysicalDeviceFeatures         features;
+		VkPhysicalDeviceProperties       properties;
+		VkPhysicalDeviceFeatures         features;
         VkPhysicalDeviceMemoryProperties memoryProperties;
 
         std::vector<VkQueueFamilyProperties> queueFamilyProperties;

@@ -86,24 +86,17 @@ public:
 		vk::UniqueHandle<VkDescriptorPool> descriptorPool{device, vkDestroyDescriptorPool};
 
 		struct {
-			vk::Image intermediate[2];
+			vk::Image intermediate[3];
 		}image;
 
-		//vk::RenderPass finalPass{vulkan.device};
-
-		//std::vector<vk::UniqueFramebuffer> framebuffers;
-
 		void Initialize(VulkanObjectsSettings& settings);
-		void ShowIntermediateImage();
+		void ShowIntermediateImage(uint32_t index);
 	private:
 		void PickPhysicalDevice();
 
 		void CreateDescriptorPool();
 		void CreateSemaphores();
 		void CreateIntermediateImages();
-		// TODO is disable because
-		//void CreateRenderPasses();
-		//void CreateFramebuffers();
 
 	} vulkan;
 
@@ -127,6 +120,8 @@ public:
 
 		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 
+		void AddToCommandBuffer(vk::CommandBuffer commandBuffer);
+
 		void Initialize();
 	private:
 		void CreateRenderPasses();
@@ -139,8 +134,10 @@ public:
 
 	} chunks;
 
-	class Bloor {
+	class Blur {
 	public:
+		uint32_t width, height;
+
 		struct {
 			vk::Material horizontal;
 			vk::Material vertical;
@@ -154,16 +151,21 @@ public:
 		struct {
 			vk::UniqueFramebuffer horizontal{vulkan.device, vkDestroyFramebuffer};
 			vk::UniqueFramebuffer vertical{vulkan.device, vkDestroyFramebuffer};
-			std::vector<vk::UniqueFramebuffer> final;
 		}framebuffer;
 
 		vk::UniqueHandle<VkSampler> sampler{vulkan.device, vkDestroySampler};
 
-		vk::UniqueHandle<VkDescriptorSetLayout> descSetLayoutHor{vulkan.device, vkDestroyDescriptorSetLayout};
-		vk::UniqueHandle<VkDescriptorSetLayout> descSetLayoutVer{vulkan.device, vkDestroyDescriptorSetLayout};
+		struct {
+			vk::UniqueHandle<VkDescriptorSetLayout> horizontal{vulkan.device, vkDestroyDescriptorSetLayout};
+			vk::UniqueHandle<VkDescriptorSetLayout> vertical{vulkan.device, vkDestroyDescriptorSetLayout};
+		}descSetLayout;
 
-		VkDescriptorSet descSetHor = VK_NULL_HANDLE;
-		VkDescriptorSet descSetVer = VK_NULL_HANDLE;
+		struct {
+			VkDescriptorSet horizontal = VK_NULL_HANDLE;
+			VkDescriptorSet vertical = VK_NULL_HANDLE;
+		}descSet;
+
+		void AddToCommandBuffer(vk::CommandBuffer commandBuffer);
 
 		void Initialize();
 	private:
@@ -173,10 +175,38 @@ public:
 		void CreateDescriptorSet();
 		void CreateMaterials();
 
-	} bloor;
+	} blur;
 
 	class UserInterface {
-	private:
+	public:
+		struct {
+			vk::RenderPass final{vulkan.device};
+		}renderPass;
 
+		struct {
+			vk::Material final;
+		}material;
+
+		struct {
+			std::vector<vk::UniqueFramebuffer> final;
+		}framebuffer;
+
+		struct {
+			VkDescriptorSet final = VK_NULL_HANDLE;
+		}descSet;
+
+		struct {
+			vk::UniqueHandle<VkDescriptorSetLayout> final{vulkan.device, vkDestroyDescriptorSetLayout};
+		}descSetLayout;
+
+		vk::UniqueHandle<VkSampler> sampler{vulkan.device, vkDestroySampler};
+
+		void Initialize();
+	private:
+		void CreateRenderPasses();
+		void CreateFramebuffers();
+		void CreateSamplers();
+		void CreateDescriptorSet();
+		void CreateMaterials();
 	} ui;
 };

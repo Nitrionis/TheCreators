@@ -1,12 +1,12 @@
 #include "SceneRenderer.h"
 
-void SceneRenderer::Bloor::CreateMaterials() {
+void SceneRenderer::Blur::CreateMaterials() {
 
-	material.horizontal.viewports[0] = vk::initialize::viewportDefault({1920/4, 1080/4}/*vulkan.swapChain.extent*/);
-	material.horizontal.scissors[0] = vk::initialize::scissorDefault({1920/4, 1080/4}/*vulkan.swapChain.extent*/);
+	material.horizontal.viewports[0] = vk::initialize::viewportDefault({width, height});
+	material.horizontal.scissors[0] = vk::initialize::scissorDefault({width, height});
 
 	material.horizontal.pipelineLayoutInfo.setLayoutCount = 1;
-	material.horizontal.pipelineLayoutInfo.pSetLayouts = &descSetLayoutHor;
+	material.horizontal.pipelineLayoutInfo.pSetLayouts = &descSetLayout.horizontal;
 
 	material.horizontal.Setup(
 		vulkan.device,
@@ -18,11 +18,11 @@ void SceneRenderer::Bloor::CreateMaterials() {
 	vk::Material::CreateMaterials(&material.horizontal);
 
 
-	material.vertical.viewports[0] = vk::initialize::viewportDefault({1920/4, 1080/4}/*vulkan.swapChain.extent*/);
-	material.vertical.scissors[0] = vk::initialize::scissorDefault({1920/4, 1080/4}/*vulkan.swapChain.extent*/);
+	material.vertical.viewports[0] = vk::initialize::viewportDefault({width, height});
+	material.vertical.scissors[0] = vk::initialize::scissorDefault({width, height});
 
 	material.vertical.pipelineLayoutInfo.setLayoutCount = 1;
-	material.vertical.pipelineLayoutInfo.pSetLayouts = &descSetLayoutVer;
+	material.vertical.pipelineLayoutInfo.pSetLayouts = &descSetLayout.vertical;
 
 	material.vertical.Setup(
 		vulkan.device,
@@ -34,7 +34,7 @@ void SceneRenderer::Bloor::CreateMaterials() {
 	vk::Material::CreateMaterials(&material.vertical);
 }
 
-void SceneRenderer::Bloor::CreateDescriptorSet() {
+void SceneRenderer::Blur::CreateDescriptorSet() {
 
 	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
 
@@ -50,7 +50,7 @@ void SceneRenderer::Bloor::CreateDescriptorSet() {
 	layoutInfo.bindingCount = 1;
 	layoutInfo.pBindings = &samplerLayoutBinding;
 
-	if (vkCreateDescriptorSetLayout(vulkan.device, &layoutInfo, nullptr, descSetLayoutHor.replace()) != VK_SUCCESS) {
+	if (vkCreateDescriptorSetLayout(vulkan.device, &layoutInfo, nullptr, descSetLayout.horizontal.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create descriptor set layout!");
 	}
 
@@ -65,7 +65,7 @@ void SceneRenderer::Bloor::CreateDescriptorSet() {
 	layoutInfo.bindingCount = 1;
 	layoutInfo.pBindings = &samplerLayoutBinding;
 
-	if (vkCreateDescriptorSetLayout(vulkan.device, &layoutInfo, nullptr, descSetLayoutVer.replace()) != VK_SUCCESS) {
+	if (vkCreateDescriptorSetLayout(vulkan.device, &layoutInfo, nullptr, descSetLayout.vertical.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create descriptor set layout!");
 	}
 
@@ -75,18 +75,18 @@ void SceneRenderer::Bloor::CreateDescriptorSet() {
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = vulkan.descriptorPool;
 	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &descSetLayoutHor;
+	allocInfo.pSetLayouts = &descSetLayout.horizontal;
 
-	if (vkAllocateDescriptorSets(vulkan.device, &allocInfo, &descSetHor) != VK_SUCCESS) {
+	if (vkAllocateDescriptorSets(vulkan.device, &allocInfo, &descSet.horizontal) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate descriptor set!");
 	}
 
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = vulkan.descriptorPool;
 	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &descSetLayoutVer;
+	allocInfo.pSetLayouts = &descSetLayout.vertical;
 
-	if (vkAllocateDescriptorSets(vulkan.device, &allocInfo, &descSetVer) != VK_SUCCESS) {
+	if (vkAllocateDescriptorSets(vulkan.device, &allocInfo, &descSet.vertical) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate descriptor set!");
 	}
 
@@ -105,7 +105,7 @@ void SceneRenderer::Bloor::CreateDescriptorSet() {
 
 	descWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	descWrites[0].pNext = nullptr;
-	descWrites[0].dstSet = descSetHor;
+	descWrites[0].dstSet = descSet.horizontal;
 	descWrites[0].dstBinding = 0;
 	descWrites[0].dstArrayElement = 0;
 	descWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -114,7 +114,7 @@ void SceneRenderer::Bloor::CreateDescriptorSet() {
 
 	descWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	descWrites[1].pNext = nullptr;
-	descWrites[1].dstSet = descSetVer;
+	descWrites[1].dstSet = descSet.vertical;
 	descWrites[1].dstBinding = 0;
 	descWrites[1].dstArrayElement = 0;
 	descWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -124,7 +124,7 @@ void SceneRenderer::Bloor::CreateDescriptorSet() {
 	vkUpdateDescriptorSets(vulkan.device, descWrites.size(), descWrites.data(), 0, nullptr);
 }
 
-void SceneRenderer::Bloor::CreateSamplers() {
+void SceneRenderer::Blur::CreateSamplers() {
 
 	VkSamplerCreateInfo samplerInfo = {};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -149,7 +149,9 @@ void SceneRenderer::Bloor::CreateSamplers() {
 	}
 }
 
-void SceneRenderer::Bloor::Initialize() {
+void SceneRenderer::Blur::Initialize() {
+	width = vulkan.swapChain.extent.width / 4;
+	height = vulkan.swapChain.extent.height / 4;
 	CreateRenderPasses();
 	CreateFramebuffers();
 	CreateSamplers();
@@ -157,7 +159,7 @@ void SceneRenderer::Bloor::Initialize() {
 	CreateMaterials();
 }
 
-void SceneRenderer::Bloor::CreateRenderPasses() {
+void SceneRenderer::Blur::CreateRenderPasses() {
 
 	VkAttachmentDescription colorAttachment = {};
 
@@ -222,17 +224,15 @@ void SceneRenderer::Bloor::CreateRenderPasses() {
 	renderPass.vertical.DoFinalInitialise();
 }
 
-void SceneRenderer::Bloor::CreateFramebuffers() {
-
-	VkImageView attachments[] = {vulkan.image.intermediate[1].view};
+void SceneRenderer::Blur::CreateFramebuffers() {
 
 	VkFramebufferCreateInfo framebufferInfo = {};
 	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 	framebufferInfo.renderPass = renderPass.horizontal;
 	framebufferInfo.attachmentCount = 1;
 	framebufferInfo.pAttachments = &vulkan.image.intermediate[1].view;
-	framebufferInfo.width = vulkan.swapChain.extent.width / 4; // TODO resize
-	framebufferInfo.height = vulkan.swapChain.extent.height / 4; // TODO resize
+	framebufferInfo.width = width;
+	framebufferInfo.height = height;
 	framebufferInfo.layers = 1;
 
 	if (vkCreateFramebuffer(vulkan.device, &framebufferInfo, nullptr, framebuffer.horizontal.replace()) != VK_SUCCESS) {
@@ -240,28 +240,54 @@ void SceneRenderer::Bloor::CreateFramebuffers() {
 	}
 
 	framebufferInfo.renderPass = renderPass.vertical;
-	framebufferInfo.pAttachments = &vulkan.image.intermediate[0].view;
+	framebufferInfo.pAttachments = &vulkan.image.intermediate[2].view;
 
 	if (vkCreateFramebuffer(vulkan.device, &framebufferInfo, nullptr, framebuffer.vertical.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create framebuffer!");
 	}
+}
 
-	framebuffer.final.resize(vulkan.swapChain.imageCount, vk::UniqueFramebuffer{vulkan.device, vkDestroyFramebuffer});
-	for (size_t i = 0; i < vulkan.swapChain.imageCount; i++)
-	{
-		VkImageView attachments[] = {vulkan.swapChain.views[i]};
+void SceneRenderer::Blur::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
 
-		VkFramebufferCreateInfo framebufferInfo = {};
-		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = renderPass.vertical;
-		framebufferInfo.attachmentCount = 1;
-		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = vulkan.swapChain.extent.width;
-		framebufferInfo.height = vulkan.swapChain.extent.height;
-		framebufferInfo.layers = 1;
+	VkRenderPassBeginInfo renderPassInfo = {};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassInfo.renderArea.offset = {0, 0};
+	renderPassInfo.renderArea.extent = {width, height};
+	// TODO subpass Blur Horizontal
+	renderPassInfo.renderPass = renderPass.horizontal;
+	renderPassInfo.framebuffer = framebuffer.horizontal;
 
-		if (vkCreateFramebuffer(vulkan.device, &framebufferInfo, nullptr, framebuffer.final[i].replace()) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create framebuffer!");
-		}
-	}
+	std::array<VkClearValue, 1> clearColors = {VkClearValue{0.000f, 1.000f, 0.000f, 1.0f}};
+	renderPassInfo.clearValueCount = clearColors.size();
+	renderPassInfo.pClearValues = clearColors.data();
+
+	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material.horizontal);
+
+	vkCmdBindDescriptorSets(
+		commandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		material.horizontal.pipelineLayout, 0, 1, &descSet.horizontal, 0, nullptr);
+
+	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
+
+	vkCmdEndRenderPass(commandBuffer);
+
+	// TODO subpass Blur Vertical
+	renderPassInfo.renderPass = renderPass.vertical;
+	renderPassInfo.framebuffer = framebuffer.vertical;
+
+	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material.vertical);
+
+	vkCmdBindDescriptorSets(
+		commandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		material.vertical.pipelineLayout, 0, 1, &descSet.vertical, 0, nullptr);
+
+	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
+
+	vkCmdEndRenderPass(commandBuffer);
 }

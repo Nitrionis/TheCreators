@@ -2,7 +2,6 @@
 
 void LoadScene() {
 	Scene scene;
-	system("pause");
 }
 
 int main() {
