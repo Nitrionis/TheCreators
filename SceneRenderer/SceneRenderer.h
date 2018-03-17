@@ -45,19 +45,35 @@ public:
 			VK_SHADER_STAGE_VERTEX_BIT,
 			VK_SHADER_STAGE_FRAGMENT_BIT
 		};
-		std::vector<const char*> bloorHorShaderNames = {
-			"Shaders\\BloorHorizontal\\vert.spv",
-			"Shaders\\BloorHorizontal\\frag.spv"
+		std::vector<const char*> blurHorShaderNames = {
+			"Shaders\\BlurHorizontal\\vert.spv",
+			"Shaders\\BlurHorizontal\\frag.spv"
 		};
-		std::vector<VkShaderStageFlagBits> bloorHorShaderUsage = {
+		std::vector<VkShaderStageFlagBits> blurHorShaderUsage = {
 			VK_SHADER_STAGE_VERTEX_BIT,
 			VK_SHADER_STAGE_FRAGMENT_BIT
 		};
-		std::vector<const char*> bloorVerShaderNames = {
-			"Shaders\\BloorVertical\\vert.spv",
-			"Shaders\\BloorVertical\\frag.spv"
+		std::vector<const char*> blurVerShaderNames = {
+			"Shaders\\BlurVertical\\vert.spv",
+			"Shaders\\BlurVertical\\frag.spv"
 		};
-		std::vector<VkShaderStageFlagBits> bloorVerShaderUsage = {
+		std::vector<VkShaderStageFlagBits> blurVerShaderUsage = {
+			VK_SHADER_STAGE_VERTEX_BIT,
+			VK_SHADER_STAGE_FRAGMENT_BIT
+		};
+		std::vector<const char*> blurComShaderNames = {
+			"Shaders\\BlurCompression\\vert.spv",
+			"Shaders\\BlurCompression\\frag.spv"
+		};
+		std::vector<VkShaderStageFlagBits> blurComShaderUsage = {
+			VK_SHADER_STAGE_VERTEX_BIT,
+			VK_SHADER_STAGE_FRAGMENT_BIT
+		};
+		std::vector<const char*> blurDecomShaderNames = {
+			"Shaders\\BlurDecompression\\vert.spv",
+			"Shaders\\BlurDecompression\\frag.spv"
+		};
+		std::vector<VkShaderStageFlagBits> blurDecomShaderUsage = {
 			VK_SHADER_STAGE_VERTEX_BIT,
 			VK_SHADER_STAGE_FRAGMENT_BIT
 		};
@@ -139,30 +155,27 @@ public:
 		uint32_t width, height;
 
 		struct {
+			vk::Material compression;
 			vk::Material horizontal;
 			vk::Material vertical;
+			vk::Material decompression;
 		}material;
 
-		struct {
-			vk::RenderPass horizontal{vulkan.device};
-			vk::RenderPass vertical{vulkan.device};
-		}renderPass;
+		vk::RenderPass renderPass{vulkan.device};
 
 		struct {
-			vk::UniqueFramebuffer horizontal{vulkan.device, vkDestroyFramebuffer};
-			vk::UniqueFramebuffer vertical{vulkan.device, vkDestroyFramebuffer};
+			vk::UniqueFramebuffer firstTarget{vulkan.device, vkDestroyFramebuffer};
+			vk::UniqueFramebuffer secondTarget{vulkan.device, vkDestroyFramebuffer};
 		}framebuffer;
 
 		vk::UniqueHandle<VkSampler> sampler{vulkan.device, vkDestroySampler};
 
-		struct {
-			vk::UniqueHandle<VkDescriptorSetLayout> horizontal{vulkan.device, vkDestroyDescriptorSetLayout};
-			vk::UniqueHandle<VkDescriptorSetLayout> vertical{vulkan.device, vkDestroyDescriptorSetLayout};
-		}descSetLayout;
+		vk::UniqueHandle<VkDescriptorSetLayout> descSetLayout{vulkan.device, vkDestroyDescriptorSetLayout};
 
 		struct {
-			VkDescriptorSet horizontal = VK_NULL_HANDLE;
-			VkDescriptorSet vertical = VK_NULL_HANDLE;
+			VkDescriptorSet compression = VK_NULL_HANDLE; // from 0 to 1
+			VkDescriptorSet horizontal = VK_NULL_HANDLE; // from 1 to 2 | also using for decompression pass
+			VkDescriptorSet vertical = VK_NULL_HANDLE; // from 2 to 1
 		}descSet;
 
 		void AddToCommandBuffer(vk::CommandBuffer commandBuffer);
@@ -176,6 +189,10 @@ public:
 		void CreateMaterials();
 
 	} blur;
+
+	/*class Bloom : public Blur {
+
+	};*/
 
 	class UserInterface {
 	public:

@@ -2,17 +2,32 @@
 
 void SceneRenderer::Blur::CreateMaterials() {
 
+	material.compression.viewports[0] = vk::initialize::viewportDefault({width, height});
+	material.compression.scissors[0] = vk::initialize::scissorDefault({width, height});
+
+	material.compression.pipelineLayoutInfo.setLayoutCount = 1;
+	material.compression.pipelineLayoutInfo.pSetLayouts = &descSetLayout;
+
+	material.compression.Setup(
+		vulkan.device,
+		renderPass,
+		settings.blurComShaderNames,
+		settings.blurComShaderUsage,
+		0
+	);
+	vk::Material::CreateMaterials(&material.compression);
+
 	material.horizontal.viewports[0] = vk::initialize::viewportDefault({width, height});
 	material.horizontal.scissors[0] = vk::initialize::scissorDefault({width, height});
 
 	material.horizontal.pipelineLayoutInfo.setLayoutCount = 1;
-	material.horizontal.pipelineLayoutInfo.pSetLayouts = &descSetLayout.horizontal;
+	material.horizontal.pipelineLayoutInfo.pSetLayouts = &descSetLayout;
 
 	material.horizontal.Setup(
 		vulkan.device,
-		renderPass.horizontal,
-		settings.bloorHorShaderNames,
-		settings.bloorHorShaderUsage,
+		renderPass,
+		settings.blurHorShaderNames,
+		settings.blurHorShaderUsage,
 		0
 	);
 	vk::Material::CreateMaterials(&material.horizontal);
@@ -22,22 +37,36 @@ void SceneRenderer::Blur::CreateMaterials() {
 	material.vertical.scissors[0] = vk::initialize::scissorDefault({width, height});
 
 	material.vertical.pipelineLayoutInfo.setLayoutCount = 1;
-	material.vertical.pipelineLayoutInfo.pSetLayouts = &descSetLayout.vertical;
+	material.vertical.pipelineLayoutInfo.pSetLayouts = &descSetLayout;
 
 	material.vertical.Setup(
 		vulkan.device,
-		renderPass.vertical,
-		settings.bloorVerShaderNames,
-		settings.bloorVerShaderUsage,
+		renderPass,
+		settings.blurVerShaderNames,
+		settings.blurVerShaderUsage,
 		0
 	);
 	vk::Material::CreateMaterials(&material.vertical);
+
+	material.decompression.viewports[0] = vk::initialize::viewportDefault(vulkan.swapChain.extent);
+	material.decompression.scissors[0] = vk::initialize::scissorDefault(vulkan.swapChain.extent);
+
+	material.decompression.pipelineLayoutInfo.setLayoutCount = 1;
+	material.decompression.pipelineLayoutInfo.pSetLayouts = &descSetLayout;
+
+	material.decompression.Setup(
+		vulkan.device,
+		renderPass,
+		settings.blurDecomShaderNames,
+		settings.blurDecomShaderUsage,
+		0
+	);
+	vk::Material::CreateMaterials(&material.decompression);
 }
 
 void SceneRenderer::Blur::CreateDescriptorSet() {
 
 	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-
 	samplerLayoutBinding.binding = 0;
 	samplerLayoutBinding.descriptorCount = 1;
 	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -45,53 +74,31 @@ void SceneRenderer::Blur::CreateDescriptorSet() {
 	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	layoutInfo.bindingCount = 1;
 	layoutInfo.pBindings = &samplerLayoutBinding;
 
-	if (vkCreateDescriptorSetLayout(vulkan.device, &layoutInfo, nullptr, descSetLayout.horizontal.replace()) != VK_SUCCESS) {
+	if (vkCreateDescriptorSetLayout(vulkan.device, &layoutInfo, nullptr, descSetLayout.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create descriptor set layout!");
 	}
-
-
-	samplerLayoutBinding.binding = 0;
-	samplerLayoutBinding.descriptorCount = 1;
-	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerLayoutBinding.pImmutableSamplers = nullptr;
-	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = 1;
-	layoutInfo.pBindings = &samplerLayoutBinding;
-
-	if (vkCreateDescriptorSetLayout(vulkan.device, &layoutInfo, nullptr, descSetLayout.vertical.replace()) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create descriptor set layout!");
-	}
-
 
 	VkDescriptorSetAllocateInfo allocInfo = {};
-
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = vulkan.descriptorPool;
 	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &descSetLayout.horizontal;
+	allocInfo.pSetLayouts = &descSetLayout;
 
+	if (vkAllocateDescriptorSets(vulkan.device, &allocInfo, &descSet.compression) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate compression descriptor set!");
+	}
 	if (vkAllocateDescriptorSets(vulkan.device, &allocInfo, &descSet.horizontal) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to allocate descriptor set!");
+		throw std::runtime_error("Failed to allocate horizontal descriptor set!");
 	}
-
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = vulkan.descriptorPool;
-	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &descSetLayout.vertical;
-
 	if (vkAllocateDescriptorSets(vulkan.device, &allocInfo, &descSet.vertical) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to allocate descriptor set!");
+		throw std::runtime_error("Failed to allocate vertical descriptor set!");
 	}
 
-
-	VkDescriptorImageInfo imageInfos[2];
+	VkDescriptorImageInfo imageInfos[3];
 
 	imageInfos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	imageInfos[0].imageView = vulkan.image.intermediate[0].view;
@@ -101,11 +108,15 @@ void SceneRenderer::Blur::CreateDescriptorSet() {
 	imageInfos[1].imageView = vulkan.image.intermediate[1].view;
 	imageInfos[1].sampler = sampler;
 
-	std::array<VkWriteDescriptorSet, 2> descWrites;
+	imageInfos[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfos[2].imageView = vulkan.image.intermediate[2].view;
+	imageInfos[2].sampler = sampler;
+
+	std::array<VkWriteDescriptorSet, 3> descWrites;
 
 	descWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	descWrites[0].pNext = nullptr;
-	descWrites[0].dstSet = descSet.horizontal;
+	descWrites[0].dstSet = descSet.compression;
 	descWrites[0].dstBinding = 0;
 	descWrites[0].dstArrayElement = 0;
 	descWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -114,12 +125,21 @@ void SceneRenderer::Blur::CreateDescriptorSet() {
 
 	descWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	descWrites[1].pNext = nullptr;
-	descWrites[1].dstSet = descSet.vertical;
+	descWrites[1].dstSet = descSet.horizontal;
 	descWrites[1].dstBinding = 0;
 	descWrites[1].dstArrayElement = 0;
 	descWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	descWrites[1].descriptorCount = 1;
 	descWrites[1].pImageInfo = &imageInfos[1];
+
+	descWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descWrites[2].pNext = nullptr;
+	descWrites[2].dstSet = descSet.vertical;
+	descWrites[2].dstBinding = 0;
+	descWrites[2].dstArrayElement = 0;
+	descWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	descWrites[2].descriptorCount = 1;
+	descWrites[2].pImageInfo = &imageInfos[2];
 
 	vkUpdateDescriptorSets(vulkan.device, descWrites.size(), descWrites.data(), 0, nullptr);
 }
@@ -150,8 +170,8 @@ void SceneRenderer::Blur::CreateSamplers() {
 }
 
 void SceneRenderer::Blur::Initialize() {
-	width = vulkan.swapChain.extent.width / 4;
-	height = vulkan.swapChain.extent.height / 4;
+	width = vulkan.swapChain.extent.width / 8;
+	height = vulkan.swapChain.extent.height / 8;
 	CreateRenderPasses();
 	CreateFramebuffers();
 	CreateSamplers();
@@ -173,31 +193,19 @@ void SceneRenderer::Blur::CreateRenderPasses() {
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	colorAttachment.finalLayout =   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-	renderPass.horizontal.colorAttachments.push_back(colorAttachment);
-
-	colorAttachment.flags = VK_FLAGS_NONE;
-	colorAttachment.format = vulkan.swapChain.colorFormat;
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp =  VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.stencilLoadOp =  VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout =   VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-	renderPass.vertical.colorAttachments.push_back(colorAttachment);
+	renderPass.colorAttachments.push_back(colorAttachment);
 
 	VkAttachmentReference attachmentRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
 
-	vk::Subpass subpass;
-	subpass.colorAttachmentRefs.push_back(attachmentRef);
 	VkSubpassDescription description = {};
 	description.flags = VK_FLAGS_NONE;
 	description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+
+	vk::Subpass subpass;
+	subpass.colorAttachmentRefs.push_back(attachmentRef);
 	subpass.description = description;
 
-	renderPass.horizontal.subpasses.push_back(subpass);
-	renderPass.vertical.subpasses.push_back(subpass);
+	renderPass.subpasses.push_back(subpass);
 
 	std::vector<VkSubpassDependency> dependencies(2);
 
@@ -217,49 +225,64 @@ void SceneRenderer::Blur::CreateRenderPasses() {
 	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-	renderPass.horizontal.dependencies = dependencies;
-	renderPass.vertical.dependencies = dependencies;
+	renderPass.dependencies = dependencies;
 
-	renderPass.horizontal.DoFinalInitialise();
-	renderPass.vertical.DoFinalInitialise();
+	renderPass.DoFinalInitialise();
 }
 
 void SceneRenderer::Blur::CreateFramebuffers() {
 
 	VkFramebufferCreateInfo framebufferInfo = {};
 	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-	framebufferInfo.renderPass = renderPass.horizontal;
-	framebufferInfo.attachmentCount = 1;
-	framebufferInfo.pAttachments = &vulkan.image.intermediate[1].view;
-	framebufferInfo.width = width;
-	framebufferInfo.height = height;
+	framebufferInfo.renderPass = renderPass;
+	framebufferInfo.width = vulkan.swapChain.extent.width;
+	framebufferInfo.height = vulkan.swapChain.extent.height;
 	framebufferInfo.layers = 1;
+	framebufferInfo.attachmentCount = 1;
 
-	if (vkCreateFramebuffer(vulkan.device, &framebufferInfo, nullptr, framebuffer.horizontal.replace()) != VK_SUCCESS) {
+	framebufferInfo.pAttachments = &vulkan.image.intermediate[1].view;
+
+	if (vkCreateFramebuffer(vulkan.device, &framebufferInfo, nullptr, framebuffer.firstTarget.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create framebuffer!");
 	}
 
-	framebufferInfo.renderPass = renderPass.vertical;
 	framebufferInfo.pAttachments = &vulkan.image.intermediate[2].view;
 
-	if (vkCreateFramebuffer(vulkan.device, &framebufferInfo, nullptr, framebuffer.vertical.replace()) != VK_SUCCESS) {
+	if (vkCreateFramebuffer(vulkan.device, &framebufferInfo, nullptr, framebuffer.secondTarget.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create framebuffer!");
 	}
 }
 
 void SceneRenderer::Blur::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
 
+	std::array<VkClearValue, 1> clearColors = {VkClearValue{0.000f, 1.000f, 0.000f, 1.0f}};
+
 	VkRenderPassBeginInfo renderPassInfo = {};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderArea.offset = {0, 0};
 	renderPassInfo.renderArea.extent = {width, height};
-	// TODO subpass Blur Horizontal
-	renderPassInfo.renderPass = renderPass.horizontal;
-	renderPassInfo.framebuffer = framebuffer.horizontal;
-
-	std::array<VkClearValue, 1> clearColors = {VkClearValue{0.000f, 1.000f, 0.000f, 1.0f}};
+	renderPassInfo.renderPass = renderPass;
 	renderPassInfo.clearValueCount = clearColors.size();
 	renderPassInfo.pClearValues = clearColors.data();
+
+	// TODO subpass Blur Compression
+	renderPassInfo.framebuffer = framebuffer.firstTarget;
+
+	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material.compression);
+
+	vkCmdBindDescriptorSets(
+		commandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		material.horizontal.pipelineLayout, 0, 1, &descSet.compression, 0, nullptr);
+
+	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
+
+	vkCmdEndRenderPass(commandBuffer);
+
+	// TODO subpass Blur Horizontal
+	renderPassInfo.framebuffer = framebuffer.secondTarget;
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -275,8 +298,7 @@ void SceneRenderer::Blur::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
 	vkCmdEndRenderPass(commandBuffer);
 
 	// TODO subpass Blur Vertical
-	renderPassInfo.renderPass = renderPass.vertical;
-	renderPassInfo.framebuffer = framebuffer.vertical;
+	renderPassInfo.framebuffer = framebuffer.firstTarget;
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -286,6 +308,24 @@ void SceneRenderer::Blur::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
 		commandBuffer,
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
 		material.vertical.pipelineLayout, 0, 1, &descSet.vertical, 0, nullptr);
+
+	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
+
+	vkCmdEndRenderPass(commandBuffer);
+
+	// TODO subpass Blur Decompression
+	renderPassInfo.renderArea.extent = vulkan.swapChain.extent;
+
+	renderPassInfo.framebuffer = framebuffer.secondTarget;
+
+	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material.decompression);
+
+	vkCmdBindDescriptorSets(
+		commandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		material.horizontal.pipelineLayout, 0, 1, &descSet.horizontal, 0, nullptr);
 
 	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 

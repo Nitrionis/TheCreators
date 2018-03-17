@@ -224,8 +224,6 @@ uint32_t vk::Device::GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags flag
     }
 }
 
-
-
 VkCommandPool vk::Device::CreateCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags) {
     VkCommandPoolCreateInfo cmdPoolInfo = {};
     cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;

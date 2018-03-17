@@ -65,6 +65,8 @@ void SceneRenderer::VulkanSharedDate::PickPhysicalDevice() {
 }
 
 void SceneRenderer::VulkanSharedDate::ShowIntermediateImage(uint32_t index) {
+	vkDeviceWaitIdle(vulkan.device);
+
 	VkImageCopy region = {};
 	region.extent = image.intermediate[index].extent;
 	region.dstOffset = {0, 0, 0};
@@ -81,6 +83,45 @@ void SceneRenderer::VulkanSharedDate::ShowIntermediateImage(uint32_t index) {
 	swapChain.AcquireNext(imageAvailableSemaphore);
 	uint32_t imageIndex = swapChain.currImageIndex;
 
+	vk::CommandBuffer commandBuffer = vulkan.device.CreateCommandBuffer(
+		vulkan.device.defaultPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, true
+	);
+
+	device.SetImageBarrier(swapChain.images[imageIndex],
+	    VK_IMAGE_LAYOUT_UNDEFINED,         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	    0,                                 VK_ACCESS_TRANSFER_WRITE_BIT,
+	    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+	    VK_QUEUE_FAMILY_IGNORED,           VK_QUEUE_FAMILY_IGNORED,
+	    nullptr,
+	    commandBuffer
+	);
+	device.SetImageBarrier(image.intermediate[index].image,
+	    VK_IMAGE_LAYOUT_UNDEFINED,         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+	    0,                                 VK_ACCESS_TRANSFER_READ_BIT,
+	    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+	    VK_QUEUE_FAMILY_IGNORED,           VK_QUEUE_FAMILY_IGNORED,
+	    nullptr,
+	    commandBuffer
+	);
+	vkCmdCopyImage(
+		commandBuffer,
+		image.intermediate[index].image,
+		VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+		swapChain.images[imageIndex],
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		1,
+		&region
+	);
+	device.SetImageBarrier(swapChain.images[imageIndex],
+	    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+	    VK_ACCESS_TRANSFER_WRITE_BIT,         VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
+	    VK_PIPELINE_STAGE_TRANSFER_BIT,       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+	    VK_QUEUE_FAMILY_IGNORED,              VK_QUEUE_FAMILY_IGNORED,
+	    nullptr,
+	    commandBuffer
+	);
+	VK_THROW_IF_FAILED(vkEndCommandBuffer(commandBuffer));
+
 	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
 	VkSubmitInfo submitInfo = {};
@@ -89,34 +130,20 @@ void SceneRenderer::VulkanSharedDate::ShowIntermediateImage(uint32_t index) {
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = &imageAvailableSemaphore;
 	submitInfo.pWaitDstStageMask = waitStages;
-	submitInfo.commandBufferCount = 0;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = &renderFinishedSemaphore;
 
-	if (vkQueueSubmit(vulkan.commandQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+	if (vkQueueSubmit(commandQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to submit draw command buffer!");
 	}
+	swapChain.Present(commandQueue, renderFinishedSemaphore);
 
-	device.SetImageBarrier(swapChain.images[imageIndex],
-	    VK_IMAGE_LAYOUT_UNDEFINED,         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-	    0,                                 VK_ACCESS_TRANSFER_WRITE_BIT,
-	    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT
-	);
-	device.SetImageBarrier(image.intermediate[index].image,
-	    VK_IMAGE_LAYOUT_UNDEFINED,         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-	    0,                                 VK_ACCESS_TRANSFER_READ_BIT,
-	    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT
-	);
-	device.CopyImage(
-		image.intermediate[index].image,
-		swapChain.images[imageIndex],
-		&region
-	);
-	device.SetImageBarrier(swapChain.images[imageIndex],
-	    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-	    VK_ACCESS_TRANSFER_WRITE_BIT,         VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
-	    VK_PIPELINE_STAGE_TRANSFER_BIT,       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-	);
+	vkDeviceWaitIdle(vulkan.device);
+	vkFreeCommandBuffers(device, device.defaultPool, 1, &commandBuffer);
+
 	system("pause");
-	swapChain.Present(commandQueue, VK_NULL_HANDLE);
 }
 
 void SceneRenderer::VulkanSharedDate::CreateIntermediateImages() {

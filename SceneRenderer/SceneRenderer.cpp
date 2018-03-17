@@ -16,21 +16,16 @@ SceneRenderer::SceneRenderer() {
 		chunks.Initialize();
 		blur.Initialize();
 		CreateCommandBuffers();
-		//ImageLoader imageLoader("C:\\Developer\\JetBrains\\Clion\\Proj\\TheCreators\\Textures\\texture.png");
 	}
 	catch (std::runtime_error e)
 	{
 		std::cout << std::endl << e.what() << std::endl;
 	}
 	DrawScene();
-	/*DrawScene();
-	DrawScene();
-	DrawScene();
-	DrawScene();
-	DrawScene();*/
 	vulkan.ShowIntermediateImage(0);
 	vulkan.ShowIntermediateImage(1);
 	vulkan.ShowIntermediateImage(2);
+
 }
 
 SceneRenderer::~SceneRenderer() {
@@ -104,6 +99,8 @@ void SceneRenderer::DrawScene() {
 		throw std::runtime_error("Failed to submit draw command buffer!");
 	}
 	//vulkan.swapChain.Present(vulkan.commandQueue, vulkan.renderFinishedSemaphore);
+
+	vkQueueWaitIdle(vulkan.commandQueue);
 
 	auto endTime = std::chrono::high_resolution_clock::now();
 	auto dtime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
