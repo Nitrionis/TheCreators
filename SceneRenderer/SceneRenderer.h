@@ -77,6 +77,14 @@ public:
 			VK_SHADER_STAGE_VERTEX_BIT,
 			VK_SHADER_STAGE_FRAGMENT_BIT
 		};
+		std::vector<const char*> uiShaderNames = {
+			"Shaders\\UserInterface\\vert.spv",
+			"Shaders\\UserInterface\\frag.spv"
+		};
+		std::vector<VkShaderStageFlagBits> uiShaderUsage = {
+			VK_SHADER_STAGE_VERTEX_BIT,
+			VK_SHADER_STAGE_FRAGMENT_BIT
+		};
 	private:
 		void InitExtensions();
 
@@ -217,6 +225,8 @@ public:
 		}descSetLayout;
 
 		vk::UniqueHandle<VkSampler> sampler{vulkan.device, vkDestroySampler};
+
+		void AddToCommandBuffer(vk::CommandBuffer commandBuffer, uint32_t bufferIndex);
 
 		void Initialize();
 	private:

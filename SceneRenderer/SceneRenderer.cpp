@@ -15,6 +15,7 @@ SceneRenderer::SceneRenderer() {
 		vulkan.Initialize(settings);
 		chunks.Initialize();
 		blur.Initialize();
+		ui.Initialize();
 		CreateCommandBuffers();
 	}
 	catch (std::runtime_error e)
@@ -22,6 +23,10 @@ SceneRenderer::SceneRenderer() {
 		std::cout << std::endl << e.what() << std::endl;
 	}
 	DrawScene();
+	for (int i = 0; i < 100; i++) {
+		DrawScene();
+	}
+	system("pause");
 	vulkan.ShowIntermediateImage(0);
 	vulkan.ShowIntermediateImage(1);
 	vulkan.ShowIntermediateImage(2);
@@ -68,6 +73,8 @@ void SceneRenderer::CreateCommandBuffers() {
 
 		blur.AddToCommandBuffer(vulkan.commandBuffers[i]);
 
+		ui.AddToCommandBuffer(vulkan.commandBuffers[i], i);
+
 		if (vkEndCommandBuffer(vulkan.commandBuffers[i]) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to record command buffer!");
 		}
@@ -92,13 +99,13 @@ void SceneRenderer::DrawScene() {
 	submitInfo.pWaitDstStageMask = waitStages;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &vulkan.commandBuffers[i];
-	submitInfo.signalSemaphoreCount = 0; // TODO 1
+	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = &vulkan.renderFinishedSemaphore;
 
 	if (vkQueueSubmit(vulkan.commandQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to submit draw command buffer!");
 	}
-	//vulkan.swapChain.Present(vulkan.commandQueue, vulkan.renderFinishedSemaphore);
+	vulkan.swapChain.Present(vulkan.commandQueue, vulkan.renderFinishedSemaphore);
 
 	vkQueueWaitIdle(vulkan.commandQueue);
 

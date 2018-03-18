@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vulkan/vulkan.h>
 #include <vector>
+#include <array>
 #include <functional>
 
 #define VK_FLAGS_NONE 0
