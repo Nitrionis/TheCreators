@@ -332,14 +332,17 @@ VkResult vk::Device::CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropert
     buffer->usageFlags = usageFlags;
     buffer->memoryPropertyFlags = memoryFlags;
 
-    // If a pointer to the buffer data has been passed, map the buffer and copy over the data
     if (data != nullptr)
     {
         VK_THROW_IF_FAILED(buffer->Map());
         memcpy(buffer->mapped, data, size);
+	    if ((memoryFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
+	    {
+		    buffer->Flush();
+		    buffer->Invalidate();
+	    }
         buffer->Unmap();
     }
-
     // Initialize a default descriptor that covers the whole buffer size
     buffer->SetupDescriptor();
 
@@ -379,7 +382,7 @@ void vk::Device::ExecuteCommandBuffer(VkCommandBuffer commandBuffer, VkCommandPo
 }
 
 void vk::Device::CopyBuffer(vk::Buffer *src, vk::Buffer *dst, VkBufferCopy *copyRegion, VkCommandPool commandPool, VkQueue commandQueue) {
-    assert(dst->size <= src->size);
+    assert(dst->size > src->size);
     assert(src->buffer && src->buffer);
 
     VkCommandBuffer copyCmdBuffer = CreateCommandBuffer(

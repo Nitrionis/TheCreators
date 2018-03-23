@@ -2,6 +2,8 @@
 #include "ImageLoader.h"
 
 void SceneRenderer::Chunks::Initialize() {
+	mesh.Initialize();
+
 	CreateRenderPasses();
 	CreateFramebuffers();
 	CreateAtlasImage();
@@ -18,6 +20,23 @@ void SceneRenderer::Chunks::CreateMaterialGround() {
 
 	material.ground.pipelineLayoutInfo.setLayoutCount = 1;
 	material.ground.pipelineLayoutInfo.pSetLayouts = &descSetLayout;
+
+	VkVertexInputBindingDescription bindingDescription = {};
+	bindingDescription.binding = 0;
+	bindingDescription.stride = sizeof(uint32_t);
+	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+	std::array<VkVertexInputAttributeDescription, 1> attributeDescriptions = {};
+
+	attributeDescriptions[0].binding = 0;
+	attributeDescriptions[0].location = 0;
+	attributeDescriptions[0].format = VK_FORMAT_R32_UINT;
+	attributeDescriptions[0].offset = 0;
+
+	material.ground.vertexInputInfo.vertexBindingDescriptionCount = 1;
+	material.ground.vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+	material.ground.vertexInputInfo.vertexAttributeDescriptionCount = attributeDescriptions.size();
+	material.ground.vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
 	material.ground.Setup(
 		vulkan.device,
@@ -225,7 +244,85 @@ void SceneRenderer::Chunks::AddToCommandBuffer(vk::CommandBuffer commandBuffer) 
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
 		material.ground.pipelineLayout, (uint32_t)Stage::DrawChunks, 1, &descriptorSet, 0, nullptr);
 
-	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
+	VkBuffer vertexBuffers[] = {mesh.buffer.vertices.buffer};
+	VkDeviceSize offsets[] = {0};
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+	vkCmdBindIndexBuffer(commandBuffer, mesh.buffer.indices.buffer, 0, VK_INDEX_TYPE_UINT16);
+
+	vkCmdDrawIndexed(commandBuffer, 3, 1, 0, 3, 0);
 
 	vkCmdEndRenderPass(commandBuffer);
+}
+
+void SceneRenderer::Chunks::Mesh::CreateBuffers() {
+
+	vulkan.device.CreateBuffer(
+		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		&buffer.vertices,
+		441*65536*4
+	);
+	vulkan.device.CreateBuffer(
+		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		&buffer.indices,
+		441*65536*2*12
+	);
+	vulkan.device.CreateBuffer(
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+		&buffer.staging.vertices,
+		65536*4
+	);
+	vulkan.device.CreateBuffer(
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+		&buffer.staging.indices,
+		65536*2*12
+	);
+}
+
+void SceneRenderer::Chunks::Mesh::CreateDate() {
+	vertices = vk::shared_array<uint32_t>(new uint32_t[4]);
+	vertices[0] = 0;
+	vertices[1] = 1;
+	vertices[2] = 2;
+	vertices[3] = 3;
+
+	buffer.staging.vertices.Map();
+	buffer.staging.vertices.CopyFrom(vertices.get(), 4*sizeof(uint32_t));
+	buffer.staging.vertices.Unmap();
+
+	buffer.staging.vertices.Flush();
+	buffer.staging.vertices.Invalidate();
+
+	vulkan.device.CopyBuffer(
+		&buffer.staging.vertices,
+		&buffer.vertices
+	);
+
+	indices = vk::shared_array<uint16_t>(new uint16_t[6]);
+	indices[0] = 0;
+	indices[1] = 1;
+	indices[2] = 2;
+	indices[3] = 0;
+	indices[4] = 1;
+	indices[5] = 2;
+
+	buffer.staging.indices.Map();
+	buffer.staging.indices.CopyFrom(indices.get(), 6*sizeof(uint16_t));
+	buffer.staging.indices.Unmap();
+
+	buffer.staging.indices.Flush();
+	buffer.staging.indices.Invalidate();
+
+	vulkan.device.CopyBuffer(
+		&buffer.staging.indices,
+		&buffer.indices
+	);
+}
+
+void SceneRenderer::Chunks::Mesh::Initialize() {
+	CreateBuffers();
+	CreateDate();
 }

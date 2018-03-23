@@ -70,7 +70,7 @@ namespace vk
 	        VkCommandBuffer commandBuffer,
             VkCommandPool   commandPool,
             VkQueue         queue,
-            bool            free = true
+            bool            free        = true
         );
 
         VkResult CreateBuffer(

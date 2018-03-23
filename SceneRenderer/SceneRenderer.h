@@ -144,6 +144,30 @@ public:
 
 		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 
+		class Mesh {
+		public:
+			struct {
+				vk::Buffer indices;
+				vk::Buffer vertices;
+				struct {
+					vk::Buffer indices;
+					vk::Buffer vertices;
+				}staging;
+			}buffer;
+
+			vk::shared_array<uint32_t> vertices = nullptr;
+			vk::shared_array<uint16_t> indices = nullptr;
+
+			void UpdateBlock(Vector3<> pos, uint32_t value);
+
+			void UpdateAll();
+
+			void Initialize();
+		private:
+			void CreateBuffers();
+			void CreateDate();
+		}mesh;
+
 		void AddToCommandBuffer(vk::CommandBuffer commandBuffer);
 
 		void Initialize();
@@ -197,10 +221,6 @@ public:
 		void CreateMaterials();
 
 	} blur;
-
-	/*class Bloom : public Blur {
-
-	};*/
 
 	class UserInterface {
 	public:

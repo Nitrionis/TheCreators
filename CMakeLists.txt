@@ -34,7 +34,7 @@ set(SOURCE_FILES
         Vulkan/UniqueHandle.h
         ImageLoader.cpp
         ImageLoader.h
-        stb_image.h SceneRenderer/Blur.cpp SceneRenderer/UserInterface.cpp)
+        stb_image.h SceneRenderer/Blur.cpp SceneRenderer/UserInterface.cpp Vulkan/VectorTypes.h Vulkan/Mesh.cpp Vulkan/Mesh.h Vulkan/Buffer.cpp SceneRenderer/Mesh.cpp)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/Vulkan/)

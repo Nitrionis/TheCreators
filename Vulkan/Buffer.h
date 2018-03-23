@@ -41,13 +41,10 @@ namespace vk
 
 		Image(const Image& obj) = delete;
 
-		VkResult Map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0)
-		{
+		VkResult Map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) {
 			return vkMapMemory(device, memory, offset, size, 0, &mapped);
 		}
-
-		void Unmap()
-		{
+		void Unmap() {
 			if (mapped) {
 				vkUnmapMemory(device, memory);
 				mapped = nullptr;
@@ -87,39 +84,30 @@ namespace vk
 
 	    Buffer(const Buffer& obj) = delete;
 
-        VkResult Map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0)
-        {
+        VkResult Map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) {
             return vkMapMemory(device, memory, offset, size, 0, &mapped);
         }
 
-        void Unmap()
-        {
+        void Unmap() {
             if (mapped) {
                 vkUnmapMemory(device, memory);
                 mapped = nullptr;
             }
         }
-
-        VkResult Bind(VkDeviceSize offset = 0)
-        {
+        VkResult Bind(VkDeviceSize offset = 0) {
             return vkBindBufferMemory(device, buffer, memory, offset);
         }
-
-        void SetupDescriptor(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0)
-        {
+        void SetupDescriptor(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) {
             descriptor.offset = offset;
             descriptor.buffer = buffer;
             descriptor.range = size;
         }
-
-        void CopyFrom(void* data, VkDeviceSize size)
-        {
+        void CopyFrom(void* data, VkDeviceSize size) {
             assert(mapped);
             memcpy(mapped, data, size);
         }
 
-        VkResult Flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0)
-        {
+        VkResult Flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) {
             VkMappedMemoryRange mappedRange = {};
             mappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
             mappedRange.memory = memory;
@@ -128,8 +116,7 @@ namespace vk
             return vkFlushMappedMemoryRanges(device, 1, &mappedRange);
         }
 
-        VkResult Invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0)
-        {
+        VkResult Invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) {
             VkMappedMemoryRange mappedRange = {};
             mappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
             mappedRange.memory = memory;

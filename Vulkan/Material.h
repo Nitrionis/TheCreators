@@ -1,5 +1,6 @@
 #pragma once
 #include "VulkanSharedHaders.h"
+#include "Mesh.h"
 
 namespace vk
 {

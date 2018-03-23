@@ -5,6 +5,7 @@ out gl_PerVertex {
     vec4 gl_Position;
 };
 
+layout(location = 0) in uint my_vertex_index;
 layout(location = 0) out vec2 uv_0;
 
 const vec2 positions[6] = vec2[](
@@ -25,6 +26,6 @@ const vec2 coords[6] = vec2[](
 );
 
 void main() {
-    gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
+    gl_Position = vec4(positions[my_vertex_index], 0.0, 1.0);
     uv_0 = coords[gl_VertexIndex];
 }
