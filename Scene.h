@@ -1,7 +1,7 @@
 #pragma once
 #include "SceneRenderer.h"
 
-class Scene : public BaseCode
+class Scene
 {
 public:
     Scene();

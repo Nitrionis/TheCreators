@@ -1,9 +1,10 @@
-#include "SceneRenderer.h"
+#include "VulkanSharedDate.h"
+#include "RendererSettings.h"
 
-void SceneRenderer::VulkanSharedDate::Initialize(SceneRenderer::VulkanObjectsSettings &settings) {
+void Vulkan::Initialize() {
 	VK_THROW_IF_FAILED(instance.Setup(
-		settings.instanceExtensions,
-		settings.validationLayers
+		RendererSettings::Instance().instanceExtensions,
+		RendererSettings::Instance().validationLayers
 	));
 	VK_THROW_IF_FAILED(debug.Setup(
 		instance,
@@ -15,8 +16,8 @@ void SceneRenderer::VulkanSharedDate::Initialize(SceneRenderer::VulkanObjectsSet
 	PickPhysicalDevice();
 	VK_THROW_IF_FAILED(device.Setup(
 		physicalDevice,
-		settings.deviceFeatures,
-		settings.deviceExtensions,
+		RendererSettings::Instance().deviceFeatures,
+		RendererSettings::Instance().deviceExtensions,
 		VK_QUEUE_GRAPHICS_BIT,
 		instance,
 		&swapChain
@@ -27,7 +28,7 @@ void SceneRenderer::VulkanSharedDate::Initialize(SceneRenderer::VulkanObjectsSet
 	CreateSemaphores();
 }
 
-void SceneRenderer::VulkanSharedDate::CreateSemaphores() {
+void Vulkan::CreateSemaphores() {
 	VkSemaphoreCreateInfo semaphoreInfo = {};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -38,7 +39,7 @@ void SceneRenderer::VulkanSharedDate::CreateSemaphores() {
 	}
 }
 
-void SceneRenderer::VulkanSharedDate::PickPhysicalDevice() {
+void Vulkan::PickPhysicalDevice() {
 	uint32_t deviceCount = 0;
 	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
@@ -64,8 +65,8 @@ void SceneRenderer::VulkanSharedDate::PickPhysicalDevice() {
 	throw std::runtime_error("Failed to find physical device!");
 }
 
-void SceneRenderer::VulkanSharedDate::ShowIntermediateImage(uint32_t index) {
-	vkDeviceWaitIdle(vulkan.device);
+void Vulkan::ShowIntermediateImage(uint32_t index) {
+	vkDeviceWaitIdle(device);
 
 	VkImageCopy region = {};
 	region.extent = image.intermediate[index].extent;
@@ -83,8 +84,8 @@ void SceneRenderer::VulkanSharedDate::ShowIntermediateImage(uint32_t index) {
 	swapChain.AcquireNext(imageAvailableSemaphore);
 	uint32_t imageIndex = swapChain.currImageIndex;
 
-	vk::CommandBuffer commandBuffer = vulkan.device.CreateCommandBuffer(
-		vulkan.device.defaultPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, true
+	vk::CommandBuffer commandBuffer = device.CreateCommandBuffer(
+		device.defaultPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, true
 	);
 
 	device.SetImageBarrier(swapChain.images[imageIndex],
@@ -140,13 +141,13 @@ void SceneRenderer::VulkanSharedDate::ShowIntermediateImage(uint32_t index) {
 	}
 	swapChain.Present(commandQueue, renderFinishedSemaphore);
 
-	vkDeviceWaitIdle(vulkan.device);
+	vkDeviceWaitIdle(device);
 	vkFreeCommandBuffers(device, device.defaultPool, 1, &commandBuffer);
 
 	system("pause");
 }
 
-void SceneRenderer::VulkanSharedDate::CreateIntermediateImages() {
+void Vulkan::CreateIntermediateImages() {
 
 	VkExtent3D imageExtent = {
 		static_cast<uint32_t>(swapChain.extent.width),
@@ -179,7 +180,7 @@ void SceneRenderer::VulkanSharedDate::CreateIntermediateImages() {
 	}
 }
 
-void SceneRenderer::VulkanSharedDate::CreateDescriptorPool() {
+void Vulkan::CreateDescriptorPool() {
 
 	VkDescriptorPoolSize poolSize = {};
 	poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;

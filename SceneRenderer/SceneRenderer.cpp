@@ -5,17 +5,13 @@
 #include <fstream>
 #include "ImageLoader.h"
 
-SceneRenderer::VulkanObjectsSettings SceneRenderer::settings;
-SceneRenderer::VulkanSharedDate SceneRenderer::vulkan;
-
 SceneRenderer::SceneRenderer() {
 	try
 	{
-		settings.Initialize();
-		vulkan.Initialize(settings);
-		chunks.Initialize();
-		blur.Initialize();
-		ui.Initialize();
+		vulkan.Initialize();
+		ChunkRenderer::Initialize();
+		BlurRenderer::Initialize();
+		UserInterfaceRenderer::Initialize();
 		CreateCommandBuffers();
 	}
 	catch (std::runtime_error e)
@@ -69,11 +65,11 @@ void SceneRenderer::CreateCommandBuffers() {
 
 		vkBeginCommandBuffer(vulkan.commandBuffers[i], &beginInfo);
 
-		chunks.AddToCommandBuffer(vulkan.commandBuffers[i]);
+		ChunkRenderer::AddToCommandBuffer(vulkan.commandBuffers[i]);
 
-		blur.AddToCommandBuffer(vulkan.commandBuffers[i]);
+		BlurRenderer::AddToCommandBuffer(vulkan.commandBuffers[i]);
 
-		ui.AddToCommandBuffer(vulkan.commandBuffers[i], i);
+		UserInterfaceRenderer::AddToCommandBuffer(vulkan.commandBuffers[i], i);
 
 		if (vkEndCommandBuffer(vulkan.commandBuffers[i]) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to record command buffer!");

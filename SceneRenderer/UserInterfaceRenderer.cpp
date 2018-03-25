@@ -1,6 +1,7 @@
-#include "SceneRenderer.h"
+#include "UserInterfaceRenderer.h"
+#include "RendererSettings.h"
 
-void SceneRenderer::UserInterface::CreateRenderPasses() {
+void UserInterfaceRenderer::CreateRenderPasses() {
 
 	VkAttachmentDescription colorAttachment = {};
 
@@ -51,7 +52,7 @@ void SceneRenderer::UserInterface::CreateRenderPasses() {
 	renderPass.final.DoFinalInitialise();
 }
 
-void SceneRenderer::UserInterface::CreateFramebuffers() {
+void UserInterfaceRenderer::CreateFramebuffers() {
 	framebuffer.final.resize(vulkan.swapChain.imageCount, vk::UniqueFramebuffer{vulkan.device, vkDestroyFramebuffer});
 	for (size_t i = 0; i < vulkan.swapChain.imageCount; i++)
 	{
@@ -72,7 +73,7 @@ void SceneRenderer::UserInterface::CreateFramebuffers() {
 	}
 }
 
-void SceneRenderer::UserInterface::CreateSamplers() {
+void UserInterfaceRenderer::CreateSamplers() {
 
 	VkSamplerCreateInfo samplerInfo = {};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -97,7 +98,7 @@ void SceneRenderer::UserInterface::CreateSamplers() {
 	}
 }
 
-void SceneRenderer::UserInterface::CreateDescriptorSet() {
+void UserInterfaceRenderer::CreateDescriptorSet() {
 
 	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
 	samplerLayoutBinding.binding = 0;
@@ -143,7 +144,7 @@ void SceneRenderer::UserInterface::CreateDescriptorSet() {
 	vkUpdateDescriptorSets(vulkan.device, descWrites.size(), descWrites.data(), 0, nullptr);
 }
 
-void SceneRenderer::UserInterface::CreateMaterials() {
+void UserInterfaceRenderer::CreateMaterials() {
 
 	material.final.viewports[0] = vk::initialize::viewportDefault(vulkan.swapChain.extent);
 	material.final.scissors[0] = vk::initialize::scissorDefault(vulkan.swapChain.extent);
@@ -154,14 +155,14 @@ void SceneRenderer::UserInterface::CreateMaterials() {
 	material.final.Setup(
 		vulkan.device,
 		renderPass.final,
-		settings.uiShaderNames,
-		settings.uiShaderUsage,
+		RendererSettings::Instance().uiShaderNames,
+		RendererSettings::Instance().uiShaderUsage,
 		0
 	);
 	vk::Material::CreateMaterials(&material.final);
 }
 
-void SceneRenderer::UserInterface::Initialize() {
+void UserInterfaceRenderer::Initialize() {
 	CreateRenderPasses();
 	CreateFramebuffers();
 	CreateSamplers();
@@ -169,7 +170,7 @@ void SceneRenderer::UserInterface::Initialize() {
 	CreateMaterials();
 }
 
-void SceneRenderer::UserInterface::AddToCommandBuffer(vk::CommandBuffer commandBuffer, uint32_t bufferIndex) {
+void UserInterfaceRenderer::AddToCommandBuffer(vk::CommandBuffer commandBuffer, uint32_t bufferIndex) {
 
 	std::array<VkClearValue, 1> clearColors = {VkClearValue{0.000f, 1.000f, 0.000f, 1.0f}};
 

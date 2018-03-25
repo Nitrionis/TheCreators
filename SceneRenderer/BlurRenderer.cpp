@@ -1,6 +1,7 @@
-#include "SceneRenderer.h"
+#include "BlurRenderer.h"
+#include "RendererSettings.h"
 
-void SceneRenderer::Blur::CreateMaterials() {
+void BlurRenderer::CreateMaterials() {
 
 	material.compression.viewports[0] = vk::initialize::viewportDefault({width, height});
 	material.compression.scissors[0] = vk::initialize::scissorDefault({width, height});
@@ -11,8 +12,8 @@ void SceneRenderer::Blur::CreateMaterials() {
 	material.compression.Setup(
 		vulkan.device,
 		renderPass,
-		settings.blurComShaderNames,
-		settings.blurComShaderUsage,
+		RendererSettings::Instance().blurComShaderNames,
+		RendererSettings::Instance().blurComShaderUsage,
 		0
 	);
 	vk::Material::CreateMaterials(&material.compression);
@@ -26,8 +27,8 @@ void SceneRenderer::Blur::CreateMaterials() {
 	material.horizontal.Setup(
 		vulkan.device,
 		renderPass,
-		settings.blurHorShaderNames,
-		settings.blurHorShaderUsage,
+		RendererSettings::Instance().blurHorShaderNames,
+		RendererSettings::Instance().blurHorShaderUsage,
 		0
 	);
 	vk::Material::CreateMaterials(&material.horizontal);
@@ -42,8 +43,8 @@ void SceneRenderer::Blur::CreateMaterials() {
 	material.vertical.Setup(
 		vulkan.device,
 		renderPass,
-		settings.blurVerShaderNames,
-		settings.blurVerShaderUsage,
+		RendererSettings::Instance().blurVerShaderNames,
+		RendererSettings::Instance().blurVerShaderUsage,
 		0
 	);
 	vk::Material::CreateMaterials(&material.vertical);
@@ -57,14 +58,14 @@ void SceneRenderer::Blur::CreateMaterials() {
 	material.decompression.Setup(
 		vulkan.device,
 		renderPass,
-		settings.blurDecomShaderNames,
-		settings.blurDecomShaderUsage,
+		RendererSettings::Instance().blurDecomShaderNames,
+		RendererSettings::Instance().blurDecomShaderUsage,
 		0
 	);
 	vk::Material::CreateMaterials(&material.decompression);
 }
 
-void SceneRenderer::Blur::CreateDescriptorSet() {
+void BlurRenderer::CreateDescriptorSet() {
 
 	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
 	samplerLayoutBinding.binding = 0;
@@ -144,7 +145,7 @@ void SceneRenderer::Blur::CreateDescriptorSet() {
 	vkUpdateDescriptorSets(vulkan.device, descWrites.size(), descWrites.data(), 0, nullptr);
 }
 
-void SceneRenderer::Blur::CreateSamplers() {
+void BlurRenderer::CreateSamplers() {
 
 	VkSamplerCreateInfo samplerInfo = {};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -169,7 +170,7 @@ void SceneRenderer::Blur::CreateSamplers() {
 	}
 }
 
-void SceneRenderer::Blur::Initialize() {
+void BlurRenderer::Initialize() {
 	width = vulkan.swapChain.extent.width / 8;
 	height = vulkan.swapChain.extent.height / 8;
 	CreateRenderPasses();
@@ -179,7 +180,7 @@ void SceneRenderer::Blur::Initialize() {
 	CreateMaterials();
 }
 
-void SceneRenderer::Blur::CreateRenderPasses() {
+void BlurRenderer::CreateRenderPasses() {
 
 	VkAttachmentDescription colorAttachment = {};
 
@@ -230,7 +231,7 @@ void SceneRenderer::Blur::CreateRenderPasses() {
 	renderPass.DoFinalInitialise();
 }
 
-void SceneRenderer::Blur::CreateFramebuffers() {
+void BlurRenderer::CreateFramebuffers() {
 
 	VkFramebufferCreateInfo framebufferInfo = {};
 	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -253,7 +254,7 @@ void SceneRenderer::Blur::CreateFramebuffers() {
 	}
 }
 
-void SceneRenderer::Blur::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
+void BlurRenderer::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
 
 	std::array<VkClearValue, 1> clearColors = {VkClearValue{0.000f, 1.000f, 0.000f, 1.0f}};
 

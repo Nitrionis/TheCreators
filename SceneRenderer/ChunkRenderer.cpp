@@ -1,7 +1,8 @@
-#include "SceneRenderer.h"
+#include "ChunkRenderer.h"
+#include "RendererSettings.h"
 #include "ImageLoader.h"
 
-void SceneRenderer::Chunks::Initialize() {
+void ChunkRenderer::Initialize() {
 	mesh.Initialize();
 
 	CreateRenderPasses();
@@ -13,7 +14,7 @@ void SceneRenderer::Chunks::Initialize() {
 	CreateMaterialGround();
 }
 
-void SceneRenderer::Chunks::CreateMaterialGround() {
+void ChunkRenderer::CreateMaterialGround() {
 
 	material.ground.viewports[0] = vk::initialize::viewportDefault(vulkan.swapChain.extent);
 	material.ground.scissors[0] = vk::initialize::scissorDefault(vulkan.swapChain.extent);
@@ -41,14 +42,14 @@ void SceneRenderer::Chunks::CreateMaterialGround() {
 	material.ground.Setup(
 		vulkan.device,
 		renderPass,
-		settings.chunkShaderNames,
-		settings.chunkShaderUsage,
+		RendererSettings::Instance().chunkShaderNames,
+		RendererSettings::Instance().chunkShaderUsage,
 		0
 	);
 	vk::Material::CreateMaterials(&material.ground);
 }
 
-void SceneRenderer::Chunks::CreateAtlasImage() {
+void ChunkRenderer::CreateAtlasImage() {
 
 	ImageLoader imageLoader("C:\\Developer\\JetBrains\\Clion\\Proj\\TheCreators\\Textures\\texture.png");
 
@@ -65,7 +66,7 @@ void SceneRenderer::Chunks::CreateAtlasImage() {
 	);
 }
 
-void SceneRenderer::Chunks::CreateAtlasImageView() {
+void ChunkRenderer::CreateAtlasImageView() {
 
 	VkImageViewCreateInfo viewInfo = {};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -83,7 +84,7 @@ void SceneRenderer::Chunks::CreateAtlasImageView() {
 	}
 }
 
-void SceneRenderer::Chunks::CreateSamplers() {
+void ChunkRenderer::CreateSamplers() {
 
 	VkSamplerCreateInfo samplerInfo = {};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -108,7 +109,7 @@ void SceneRenderer::Chunks::CreateSamplers() {
 	}
 }
 
-void SceneRenderer::Chunks::CreateDescriptorSet() {
+void ChunkRenderer::CreateDescriptorSet() {
 
 	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
 	samplerLayoutBinding.binding = 0;
@@ -153,7 +154,7 @@ void SceneRenderer::Chunks::CreateDescriptorSet() {
 	vkUpdateDescriptorSets(vulkan.device, 1, &descriptorWrite, 0, nullptr);
 }
 
-void SceneRenderer::Chunks::CreateRenderPasses() {
+void ChunkRenderer::CreateRenderPasses() {
 
 	VkAttachmentDescription colorAttachment = {};
 
@@ -204,7 +205,7 @@ void SceneRenderer::Chunks::CreateRenderPasses() {
 	renderPass.DoFinalInitialise();
 }
 
-void SceneRenderer::Chunks::CreateFramebuffers() {
+void ChunkRenderer::CreateFramebuffers() {
 
 	std::array<VkImageView, 1> attachments = {vulkan.image.intermediate[0].view};
 
@@ -222,7 +223,7 @@ void SceneRenderer::Chunks::CreateFramebuffers() {
 	}
 }
 
-void SceneRenderer::Chunks::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
+void ChunkRenderer::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
 
 	VkRenderPassBeginInfo renderPassInfo = {};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -242,7 +243,7 @@ void SceneRenderer::Chunks::AddToCommandBuffer(vk::CommandBuffer commandBuffer) 
 	vkCmdBindDescriptorSets(
 		commandBuffer,
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
-		material.ground.pipelineLayout, (uint32_t)Stage::DrawChunks, 1, &descriptorSet, 0, nullptr);
+		material.ground.pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
 	VkBuffer vertexBuffers[] = {mesh.buffer.vertices.buffer};
 	VkDeviceSize offsets[] = {0};
@@ -254,7 +255,7 @@ void SceneRenderer::Chunks::AddToCommandBuffer(vk::CommandBuffer commandBuffer) 
 	vkCmdEndRenderPass(commandBuffer);
 }
 
-void SceneRenderer::Chunks::Mesh::CreateBuffers() {
+void ChunkRenderer::Mesh::CreateBuffers() {
 
 	vulkan.device.CreateBuffer(
 		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -282,7 +283,7 @@ void SceneRenderer::Chunks::Mesh::CreateBuffers() {
 	);
 }
 
-void SceneRenderer::Chunks::Mesh::CreateDate() {
+void ChunkRenderer::Mesh::CreateDate() {
 	vertices = vk::shared_array<uint32_t>(new uint32_t[4]);
 	vertices[0] = 0;
 	vertices[1] = 1;
@@ -322,7 +323,7 @@ void SceneRenderer::Chunks::Mesh::CreateDate() {
 	);
 }
 
-void SceneRenderer::Chunks::Mesh::Initialize() {
+void ChunkRenderer::Mesh::Initialize() {
 	CreateBuffers();
 	CreateDate();
 }

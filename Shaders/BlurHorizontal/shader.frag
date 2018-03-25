@@ -12,10 +12,10 @@ const vec2 pixelSize = vec2(1.0f / 1920.0f, 0.0f);
 void main() {
     out_color_0 =
           texture(texSampler, uv_0 - pixelSize * 3) * 0.00598
-        + texture(texSampler, uv_0 - pixelSize * 2) * 0.060626
-        + texture(texSampler, uv_0 - pixelSize) * 0.241843
-        + texture(texSampler, uv_0) * 0.383103
-        + texture(texSampler, uv_0 + pixelSize) * 0.241843
-        + texture(texSampler, uv_0 + pixelSize * 2) * 0.060626
+        + texture(texSampler, uv_0 - pixelSize * 2) * 0.070626
+        + texture(texSampler, uv_0 - pixelSize) * 0.271843
+        + texture(texSampler, uv_0) * 0.303103
+        + texture(texSampler, uv_0 + pixelSize) * 0.271843
+        + texture(texSampler, uv_0 + pixelSize * 2) * 0.070626
         + texture(texSampler, uv_0 + pixelSize * 3) * 0.00598;
 }

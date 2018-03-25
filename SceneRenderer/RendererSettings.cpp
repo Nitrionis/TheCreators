@@ -1,6 +1,6 @@
-#include "SceneRenderer.h"
+#include "RendererSettings.h"
 
-void SceneRenderer::VulkanObjectsSettings::InitExtensions() {
+void RendererSettings::InitExtensions() {
 #ifdef _WIN32
 	instanceExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_IOS_MVK)
@@ -14,6 +14,3 @@ void SceneRenderer::VulkanObjectsSettings::InitExtensions() {
 #endif
 }
 
-void SceneRenderer::VulkanObjectsSettings::Initialize() {
-	InitExtensions();
-}
