@@ -1,6 +1,7 @@
 #pragma once
 #include "VulkanSharedHaders.h"
 #include "Mesh.h"
+#include "SubpassIndex.h"
 
 namespace vk
 {
@@ -87,7 +88,7 @@ namespace vk
 			vk::RenderPass& renderPass,
 			std::vector<const char*>& shaderFileNames,
 			std::vector<VkShaderStageFlagBits>& shaderUsage,
-			size_t subpassIndex
+			SubpassIndex subpassIndex
 		);
 		void Destroy();
 

@@ -3,6 +3,9 @@
 #include "ImageLoader.h"
 
 void ChunkRenderer::Initialize() {
+	std::cout <<"\n***************************************\n";
+	std::cout <<  "*     ChunkRenderer::Initialize()     *\n";
+	std::cout <<  "***************************************\n\n";
 	mesh.Initialize();
 
 	CreateRenderPasses();
@@ -34,17 +37,20 @@ void ChunkRenderer::CreateMaterialGround() {
 	attributeDescriptions[0].format = VK_FORMAT_R32_UINT;
 	attributeDescriptions[0].offset = 0;
 
-	material.ground.vertexInputInfo.vertexBindingDescriptionCount = 1;
-	material.ground.vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-	material.ground.vertexInputInfo.vertexAttributeDescriptionCount = attributeDescriptions.size();
-	material.ground.vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+	VkPipelineVertexInputStateCreateInfo inputInfo{};
+	inputInfo.vertexBindingDescriptionCount = 1;
+	inputInfo.pVertexBindingDescriptions = &bindingDescription;
+	inputInfo.vertexAttributeDescriptionCount = attributeDescriptions.size();
+	inputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+
+	material.ground.vertexInputInfo = inputInfo;
 
 	material.ground.Setup(
 		vulkan.device,
 		renderPass,
 		RendererSettings::Instance().chunkShaderNames,
 		RendererSettings::Instance().chunkShaderUsage,
-		0
+		SubpassIndex::zero
 	);
 	vk::Material::CreateMaterials(&material.ground);
 }
@@ -111,17 +117,24 @@ void ChunkRenderer::CreateSamplers() {
 
 void ChunkRenderer::CreateDescriptorSet() {
 
-	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-	samplerLayoutBinding.binding = 0;
-	samplerLayoutBinding.descriptorCount = 1;
-	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerLayoutBinding.pImmutableSamplers = nullptr;
-	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	std::array<VkDescriptorSetLayoutBinding, 2> samplerLayoutBinding = {};
+
+	samplerLayoutBinding[0].binding = 0;
+	samplerLayoutBinding[0].descriptorCount = 1;
+	samplerLayoutBinding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerLayoutBinding[0].pImmutableSamplers = nullptr;
+	samplerLayoutBinding[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	samplerLayoutBinding[1].binding = 1;
+	samplerLayoutBinding[1].descriptorCount = 1;
+	samplerLayoutBinding[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	samplerLayoutBinding[1].pImmutableSamplers = nullptr;
+	samplerLayoutBinding[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = 1;
-	layoutInfo.pBindings = &samplerLayoutBinding;
+	layoutInfo.bindingCount = samplerLayoutBinding.size();
+	layoutInfo.pBindings = samplerLayoutBinding.data();
 
 	if (vkCreateDescriptorSetLayout(vulkan.device, &layoutInfo, nullptr, descSetLayout.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create descriptor set layout!");
@@ -142,16 +155,28 @@ void ChunkRenderer::CreateDescriptorSet() {
 	imageInfo.imageView = image.atlas.view;
 	imageInfo.sampler = sampler;
 
-	VkWriteDescriptorSet descriptorWrite = {};
-	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite.dstSet = descriptorSet;
-	descriptorWrite.dstBinding = 0;
-	descriptorWrite.dstArrayElement = 0;
-	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	descriptorWrite.descriptorCount = 1;
-	descriptorWrite.pImageInfo = &imageInfo;
+	VkDescriptorBufferInfo bufferInfo = mesh.buffer.uniform.descriptor; // TODO VK_WHOLE_SIZE
+	bufferInfo.range = 64;
 
-	vkUpdateDescriptorSets(vulkan.device, 1, &descriptorWrite, 0, nullptr);
+	std::array<VkWriteDescriptorSet, 2> descriptorWrite = {};
+
+	descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrite[0].dstSet = descriptorSet;
+	descriptorWrite[0].dstBinding = 0;
+	descriptorWrite[0].dstArrayElement = 0;
+	descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	descriptorWrite[0].descriptorCount = 1;
+	descriptorWrite[0].pImageInfo = &imageInfo;
+
+	descriptorWrite[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrite[1].dstSet = descriptorSet;
+	descriptorWrite[1].dstBinding = 1;
+	descriptorWrite[1].dstArrayElement = 0;
+	descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	descriptorWrite[1].descriptorCount = 1;
+	descriptorWrite[1].pBufferInfo = &bufferInfo;
+
+	vkUpdateDescriptorSets(vulkan.device, descriptorWrite.size(), descriptorWrite.data(), 0, nullptr);
 }
 
 void ChunkRenderer::CreateRenderPasses() {
@@ -250,7 +275,7 @@ void ChunkRenderer::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 	vkCmdBindIndexBuffer(commandBuffer, mesh.buffer.indices.buffer, 0, VK_INDEX_TYPE_UINT16);
 
-	vkCmdDrawIndexed(commandBuffer, 3, 1, 0, 3, 0);
+	vkCmdDrawIndexed(commandBuffer, 3, 1, 3, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);
 }
@@ -270,35 +295,36 @@ void ChunkRenderer::Mesh::CreateBuffers() {
 		441*65536*2*12
 	);
 	vulkan.device.CreateBuffer(
-		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-		&buffer.staging.vertices,
-		65536*4
+		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		&buffer.uniform,
+		256
 	);
 	vulkan.device.CreateBuffer(
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-		&buffer.staging.indices,
+		&buffer.staging,
 		65536*2*12
 	);
 }
 
 void ChunkRenderer::Mesh::CreateDate() {
+
 	vertices = vk::shared_array<uint32_t>(new uint32_t[4]);
 	vertices[0] = 0;
 	vertices[1] = 1;
 	vertices[2] = 2;
 	vertices[3] = 3;
 
-	buffer.staging.vertices.Map();
-	buffer.staging.vertices.CopyFrom(vertices.get(), 4*sizeof(uint32_t));
-	buffer.staging.vertices.Unmap();
+	buffer.staging.Map();
+	buffer.staging.CopyFrom(vertices.get(), 4*sizeof(uint32_t));
+	buffer.staging.Unmap();
 
-	buffer.staging.vertices.Flush();
-	buffer.staging.vertices.Invalidate();
+	buffer.staging.Flush();
+	buffer.staging.Invalidate();
 
 	vulkan.device.CopyBuffer(
-		&buffer.staging.vertices,
+		&buffer.staging,
 		&buffer.vertices
 	);
 
@@ -310,16 +336,33 @@ void ChunkRenderer::Mesh::CreateDate() {
 	indices[4] = 1;
 	indices[5] = 2;
 
-	buffer.staging.indices.Map();
-	buffer.staging.indices.CopyFrom(indices.get(), 6*sizeof(uint16_t));
-	buffer.staging.indices.Unmap();
+	buffer.staging.Map();
+	buffer.staging.CopyFrom(indices.get(), 6*sizeof(uint16_t));
+	buffer.staging.Unmap();
 
-	buffer.staging.indices.Flush();
-	buffer.staging.indices.Invalidate();
+	buffer.staging.Flush();
+	buffer.staging.Invalidate();
 
 	vulkan.device.CopyBuffer(
-		&buffer.staging.indices,
+		&buffer.staging,
 		&buffer.indices
+	);
+
+	float matrix_value = 0.5f;
+	buffer.staging.Map(4);
+	buffer.staging.CopyFrom(&matrix_value, sizeof(float));
+	buffer.staging.Unmap();
+
+	buffer.staging.Flush();
+	buffer.staging.Invalidate();
+
+	VkBufferCopy bufferCopy{};
+	bufferCopy.size = 4;
+
+	vulkan.device.CopyBuffer(
+		&buffer.staging,
+		&buffer.uniform,
+		&bufferCopy
 	);
 }
 

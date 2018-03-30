@@ -157,12 +157,16 @@ void UserInterfaceRenderer::CreateMaterials() {
 		renderPass.final,
 		RendererSettings::Instance().uiShaderNames,
 		RendererSettings::Instance().uiShaderUsage,
-		0
+		SubpassIndex::zero
 	);
 	vk::Material::CreateMaterials(&material.final);
 }
 
 void UserInterfaceRenderer::Initialize() {
+	std::cout <<"\n***************************************\n";
+	std::cout <<  "* UserInterfaceRenderer::Initialize() *\n";
+	std::cout <<  "***************************************\n\n";
+
 	CreateRenderPasses();
 	CreateFramebuffers();
 	CreateSamplers();

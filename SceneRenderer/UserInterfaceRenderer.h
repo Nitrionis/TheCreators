@@ -3,7 +3,7 @@
 #include "VulkanReference.h"
 
 class UserInterfaceRenderer : virtual public VulkanReference {
-public:
+private:
 	struct {
 		vk::RenderPass final{vulkan.device};
 	}renderPass;
@@ -26,9 +26,10 @@ public:
 
 	vk::UniqueHandle<VkSampler> sampler{vulkan.device, vkDestroySampler};
 
+public:
 	void AddToCommandBuffer(vk::CommandBuffer commandBuffer, uint32_t bufferIndex);
-
 	void Initialize();
+
 private:
 	void CreateRenderPasses();
 	void CreateFramebuffers();

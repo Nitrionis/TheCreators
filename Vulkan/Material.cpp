@@ -160,7 +160,7 @@ void vk::Material::Setup(
 	vk::RenderPass& renderPass,
 	std::vector<const char*>& shaderFileNames,
 	std::vector<VkShaderStageFlagBits>& shaderUsage,
-	size_t subpassIndex)
+	SubpassIndex subpassIndex)
 {
 	this->device = device;
 
@@ -208,7 +208,7 @@ void vk::Material::Setup(
 	pipelineInfo.pDynamicState       = nullptr;
 	pipelineInfo.layout              = pipelineLayout;
 	pipelineInfo.renderPass          = renderPass;
-	pipelineInfo.subpass             = subpassIndex;
+	pipelineInfo.subpass             = static_cast<uint32_t>(subpassIndex);
 	pipelineInfo.basePipelineHandle  = VK_NULL_HANDLE;
 	pipelineInfo.basePipelineIndex   = -1;
 }

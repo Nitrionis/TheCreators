@@ -11,24 +11,30 @@ vk::Debug::~Debug() {
 VkBool32 vk::Debug::MessageCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objType, uint64_t srcObject,
                                     size_t location, int32_t msgCode, const char *pLayerPrefix, const char *pMsg, void *pUserData)
 {
+    //static HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
     {
+        //SetConsoleTextAttribute(hConsole, 12);
         std::cout << "ERROR:";
     };
     if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
     {
+        //SetConsoleTextAttribute(hConsole, 14);
         std::cout << "WARNING:";
     };
     if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
     {
+        //SetConsoleTextAttribute(hConsole, 14);
         std::cout << "PERFORMANCE:";
     };
     if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
     {
+        //SetConsoleTextAttribute(hConsole, 10);
         std::cout << "INFO:";
     }
     if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
     {
+        //SetConsoleTextAttribute(hConsole, 12);
         std::cout << "DEBUG:";
     }
     std::cout << " Code " << msgCode << " Message: " << pMsg << std::endl;

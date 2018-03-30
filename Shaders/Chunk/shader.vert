@@ -1,6 +1,10 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+layout(binding = 1) uniform UniformBufferObject {
+    mat4 mvp;
+} ubo;
+
 out gl_PerVertex {
     vec4 gl_Position;
 };
@@ -26,6 +30,6 @@ const vec2 coords[6] = vec2[](
 );
 
 void main() {
-    gl_Position = vec4(positions[my_vertex_index], 0.0, 1.0);
+    gl_Position = vec4(positions[my_vertex_index] * ubo.mvp[0][0], 0.0, 1.0);
     uv_0 = coords[gl_VertexIndex];
 }

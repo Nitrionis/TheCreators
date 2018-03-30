@@ -16,7 +16,4 @@ public:
 private:
 	void DrawScene();
 	void CreateCommandBuffers();
-
-public:
-
 };

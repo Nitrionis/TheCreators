@@ -3,7 +3,7 @@
 #include "VulkanReference.h"
 
 class BlurRenderer : virtual public VulkanReference {
-public:
+private:
 	uint32_t width, height;
 
 	struct {
@@ -30,9 +30,10 @@ public:
 		VkDescriptorSet vertical = VK_NULL_HANDLE; // from 2 to 1
 	}descSet;
 
+public:
 	void AddToCommandBuffer(vk::CommandBuffer commandBuffer);
-
 	void Initialize();
+
 private:
 	void CreateRenderPasses();
 	void CreateFramebuffers();

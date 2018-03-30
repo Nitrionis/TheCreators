@@ -1,4 +1,4 @@
-#include "Scene.h"
+#include "Scene/Scene.h"
 
 void LoadScene() {
 	Scene scene;

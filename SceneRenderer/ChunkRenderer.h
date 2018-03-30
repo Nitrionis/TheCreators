@@ -3,7 +3,7 @@
 #include "VulkanReference.h"
 
 class ChunkRenderer : virtual public VulkanReference {
-public:
+private:
 	struct {
 		vk::Material ground;
 	}material;
@@ -27,10 +27,8 @@ public:
 		struct {
 			vk::Buffer indices;
 			vk::Buffer vertices;
-			struct {
-				vk::Buffer indices;
-				vk::Buffer vertices;
-			}staging;
+			vk::Buffer uniform;
+			vk::Buffer staging;
 		}buffer;
 
 		vk::shared_array<uint32_t> vertices = nullptr;
@@ -46,9 +44,10 @@ public:
 		void CreateDate();
 	}mesh;
 
+public:
 	void AddToCommandBuffer(vk::CommandBuffer commandBuffer);
-
 	void Initialize();
+
 private:
 	void CreateRenderPasses();
 	void CreateFramebuffers();
@@ -58,5 +57,3 @@ private:
 	void CreateSamplers();
 	void CreateDescriptorSet();
 };
-
-

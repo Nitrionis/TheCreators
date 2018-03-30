@@ -8,8 +8,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(SOURCE_FILES
         main.cpp
         Vulkan/VulkanSharedHaders.h
-        Scene.cpp
-        Scene.h
+        Scene/Scene.cpp
+        Scene/Scene.h
         SceneRenderer/SceneRenderer.cpp
         SceneRenderer/SceneRenderer.h
         SceneRenderer/VulkanSharedDate.cpp
@@ -33,11 +33,29 @@ set(SOURCE_FILES
         Vulkan/UniqueHandle.h
         ImageLoader.cpp
         ImageLoader.h
-        stb_image.h Vulkan/VectorTypes.h Vulkan/Mesh.cpp Vulkan/Mesh.h Vulkan/Buffer.cpp SceneRenderer/VulkanSharedDate.h SceneRenderer/VulkanReference.h SceneRenderer/VulkanReference.cpp SceneRenderer/ChunkRenderer.cpp SceneRenderer/ChunkRenderer.h SceneRenderer/RendererSettings.h SceneRenderer/UserInterfaceRenderer.cpp SceneRenderer/UserInterfaceRenderer.h SceneRenderer/BlurRenderer.cpp SceneRenderer/BlurRenderer.h)
+        stb_image.h
+        Vulkan/VectorTypes.h
+        Vulkan/Mesh.cpp
+        Vulkan/Mesh.h
+        Vulkan/Buffer.cpp
+        SceneRenderer/VulkanSharedDate.h
+        SceneRenderer/VulkanReference.h
+        SceneRenderer/VulkanReference.cpp
+        SceneRenderer/ChunkRenderer.cpp
+        SceneRenderer/ChunkRenderer.h
+        SceneRenderer/RendererSettings.h
+        SceneRenderer/UserInterfaceRenderer.cpp
+        SceneRenderer/UserInterfaceRenderer.h
+        SceneRenderer/BlurRenderer.cpp
+        SceneRenderer/BlurRenderer.h
+        SceneRenderer/SubpassIndex.h
+        Scene/Character.cpp
+        Scene/Character.h)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/Vulkan/)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/SceneRenderer/)
+include_directories(C:/Developer/Libs/glm)
 
 add_executable(TheCreators ${SOURCE_FILES})
 
@@ -48,3 +66,4 @@ if (Vulkan_FOUND)
     target_link_libraries (TheCreators ${Vulkan_LIBRARIES})
     message(STATUS "Vulkan Include dirs: ${Vulkan_INCLUDE_DIRS} and libs: ${Vulkan_LIBRARIES}")
 endif (Vulkan_FOUND)
+

@@ -382,8 +382,11 @@ void vk::Device::ExecuteCommandBuffer(VkCommandBuffer commandBuffer, VkCommandPo
 }
 
 void vk::Device::CopyBuffer(vk::Buffer *src, vk::Buffer *dst, VkBufferCopy *copyRegion, VkCommandPool commandPool, VkQueue commandQueue) {
-    assert(dst->size > src->size);
-    assert(src->buffer && src->buffer);
+
+	if (copyRegion == nullptr) {
+		assert(dst->size > src->size);
+		assert(src->buffer && src->buffer);
+	}
 
     VkCommandBuffer copyCmdBuffer = CreateCommandBuffer(
 	    commandPool == VK_NULL_HANDLE ? this->defaultPool : commandPool,

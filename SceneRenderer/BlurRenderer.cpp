@@ -14,7 +14,7 @@ void BlurRenderer::CreateMaterials() {
 		renderPass,
 		RendererSettings::Instance().blurComShaderNames,
 		RendererSettings::Instance().blurComShaderUsage,
-		0
+		SubpassIndex::zero
 	);
 	vk::Material::CreateMaterials(&material.compression);
 
@@ -29,7 +29,7 @@ void BlurRenderer::CreateMaterials() {
 		renderPass,
 		RendererSettings::Instance().blurHorShaderNames,
 		RendererSettings::Instance().blurHorShaderUsage,
-		0
+		SubpassIndex::zero
 	);
 	vk::Material::CreateMaterials(&material.horizontal);
 
@@ -45,7 +45,7 @@ void BlurRenderer::CreateMaterials() {
 		renderPass,
 		RendererSettings::Instance().blurVerShaderNames,
 		RendererSettings::Instance().blurVerShaderUsage,
-		0
+		SubpassIndex::zero
 	);
 	vk::Material::CreateMaterials(&material.vertical);
 
@@ -60,7 +60,7 @@ void BlurRenderer::CreateMaterials() {
 		renderPass,
 		RendererSettings::Instance().blurDecomShaderNames,
 		RendererSettings::Instance().blurDecomShaderUsage,
-		0
+		SubpassIndex::zero
 	);
 	vk::Material::CreateMaterials(&material.decompression);
 }
@@ -171,6 +171,10 @@ void BlurRenderer::CreateSamplers() {
 }
 
 void BlurRenderer::Initialize() {
+	std::cout <<"\n***************************************\n";
+	std::cout <<  "*     BlurRenderer::Initialize()      *\n";
+	std::cout <<  "***************************************\n\n";
+
 	width = vulkan.swapChain.extent.width / 8;
 	height = vulkan.swapChain.extent.height / 8;
 	CreateRenderPasses();
