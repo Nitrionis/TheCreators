@@ -21,8 +21,9 @@ public:
 		return s;
 	}
 
-	Vector3<float> position;
-	Vector3<float> rotation;
+	glm::vec3 position;
+	glm::vec3 direction;
+	glm::vec3 rotation;
 
 	struct {
 		glm::mat4 mvp;
@@ -31,6 +32,7 @@ public:
 		glm::mat4 proj;
 	}matrix;
 
+	void UpdateDirection();
 	void UpdateMatrixMvp();
 };
 

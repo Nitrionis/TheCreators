@@ -23,6 +23,7 @@ void Vulkan::Initialize() {
 		&swapChain
 	));
 	swapChain.Setup();
+	CreateQueryPool();
 	CreateDescriptorPool();
 	CreateIntermediateImages();
 	CreateSemaphores();
@@ -70,12 +71,15 @@ void Vulkan::ShowIntermediateImage(uint32_t index) {
 
 	VkImageCopy region = {};
 	region.extent = image.intermediate[index].extent;
+
 	region.dstOffset = {0, 0, 0};
 	region.srcOffset = {0, 0, 0};
+
 	region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	region.dstSubresource.baseArrayLayer = 0;
 	region.dstSubresource.layerCount     = 1;
 	region.dstSubresource.mipLevel       = 0;
+
 	region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	region.srcSubresource.baseArrayLayer = 0;
 	region.srcSubresource.layerCount     = 1;
@@ -199,4 +203,15 @@ void Vulkan::CreateDescriptorPool() {
 	if (vkCreateDescriptorPool(device, &poolInfo, nullptr, descriptorPool.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create descriptor pool!");
 	}
+}
+
+void Vulkan::CreateQueryPool() {
+
+	VkQueryPoolCreateInfo info = {};
+	info.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+	info.pNext = nullptr;
+	info.flags = VK_FLAGS_NONE;
+	info.queryType = VK_QUERY_TYPE_TIMESTAMP;
+	info.queryCount = 2;
+	vkCreateQueryPool(device, &info, nullptr, queryPool.replace());
 }

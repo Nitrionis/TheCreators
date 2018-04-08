@@ -1,10 +1,13 @@
-#include "ChunkRenderer.h"
+#include <Scene/Character/Character.h>
+#include "Scene/Chunks/ChunksRenderer.h"
 #include "RendererSettings.h"
 #include "ImageLoader.h"
 
-void ChunkRenderer::Initialize() {
+#include "Scene/Character/Character.h"
+
+void ChunksRenderer::Initialize() {
 	std::cout <<"\n***************************************\n";
-	std::cout <<  "*     ChunkRenderer::Initialize()     *\n";
+	std::cout <<  "*     ChunksRenderer::Initialize()     *\n";
 	std::cout <<  "***************************************\n\n";
 	mesh.Initialize();
 
@@ -17,7 +20,7 @@ void ChunkRenderer::Initialize() {
 	CreateMaterialGround();
 }
 
-void ChunkRenderer::CreateMaterialGround() {
+void ChunksRenderer::CreateMaterialGround() {
 
 	material.ground.viewports[0] = vk::initialize::viewportDefault(vulkan.swapChain.extent);
 	material.ground.scissors[0] = vk::initialize::scissorDefault(vulkan.swapChain.extent);
@@ -55,7 +58,7 @@ void ChunkRenderer::CreateMaterialGround() {
 	vk::Material::CreateMaterials(&material.ground);
 }
 
-void ChunkRenderer::CreateAtlasImage() {
+void ChunksRenderer::CreateAtlasImage() {
 
 	ImageLoader imageLoader("C:\\Developer\\JetBrains\\Clion\\Proj\\TheCreators\\Textures\\texture.png");
 
@@ -72,7 +75,7 @@ void ChunkRenderer::CreateAtlasImage() {
 	);
 }
 
-void ChunkRenderer::CreateAtlasImageView() {
+void ChunksRenderer::CreateAtlasImageView() {
 
 	VkImageViewCreateInfo viewInfo = {};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -90,7 +93,7 @@ void ChunkRenderer::CreateAtlasImageView() {
 	}
 }
 
-void ChunkRenderer::CreateSamplers() {
+void ChunksRenderer::CreateSamplers() {
 
 	VkSamplerCreateInfo samplerInfo = {};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -115,7 +118,7 @@ void ChunkRenderer::CreateSamplers() {
 	}
 }
 
-void ChunkRenderer::CreateDescriptorSet() {
+void ChunksRenderer::CreateDescriptorSet() {
 
 	std::array<VkDescriptorSetLayoutBinding, 2> samplerLayoutBinding = {};
 
@@ -156,7 +159,7 @@ void ChunkRenderer::CreateDescriptorSet() {
 	imageInfo.sampler = sampler;
 
 	VkDescriptorBufferInfo bufferInfo = mesh.buffer.uniform.descriptor; // TODO VK_WHOLE_SIZE
-	bufferInfo.range = 64;
+	bufferInfo.range = sizeof(glm::mat4);
 
 	std::array<VkWriteDescriptorSet, 2> descriptorWrite = {};
 
@@ -179,7 +182,7 @@ void ChunkRenderer::CreateDescriptorSet() {
 	vkUpdateDescriptorSets(vulkan.device, descriptorWrite.size(), descriptorWrite.data(), 0, nullptr);
 }
 
-void ChunkRenderer::CreateRenderPasses() {
+void ChunksRenderer::CreateRenderPasses() {
 
 	VkAttachmentDescription colorAttachment = {};
 
@@ -230,7 +233,7 @@ void ChunkRenderer::CreateRenderPasses() {
 	renderPass.DoFinalInitialise();
 }
 
-void ChunkRenderer::CreateFramebuffers() {
+void ChunksRenderer::CreateFramebuffers() {
 
 	std::array<VkImageView, 1> attachments = {vulkan.image.intermediate[0].view};
 
@@ -248,20 +251,20 @@ void ChunkRenderer::CreateFramebuffers() {
 	}
 }
 
-void ChunkRenderer::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
-
-	VkRenderPassBeginInfo renderPassInfo = {};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = renderPass;
-	renderPassInfo.framebuffer = framebuffer;
-	renderPassInfo.renderArea.offset = {0, 0};
-	renderPassInfo.renderArea.extent = vulkan.swapChain.extent;
+void ChunksRenderer::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
 
 	std::array<VkClearValue, 1> clearColors = {VkClearValue{1.000f, 0.000f, 0.000f, 1.0f}};
-	renderPassInfo.clearValueCount = clearColors.size();
-	renderPassInfo.pClearValues = clearColors.data();
 
-	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	VkRenderPassBeginInfo passInfo = {};
+	passInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	passInfo.renderPass         = renderPass;
+	passInfo.framebuffer        = framebuffer;
+	passInfo.renderArea.offset  = {0, 0};
+	passInfo.renderArea.extent  = vulkan.swapChain.extent;
+	passInfo.clearValueCount    = clearColors.size();
+	passInfo.pClearValues       = clearColors.data();
+
+	vkCmdBeginRenderPass(commandBuffer, &passInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material.ground);
 
@@ -275,12 +278,12 @@ void ChunkRenderer::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 	vkCmdBindIndexBuffer(commandBuffer, mesh.buffer.indices.buffer, 0, VK_INDEX_TYPE_UINT16);
 
-	vkCmdDrawIndexed(commandBuffer, 3, 1, 3, 0, 0);
+	vkCmdDrawIndexed(commandBuffer, 3, 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);
 }
 
-void ChunkRenderer::Mesh::CreateBuffers() {
+void ChunksRenderer::Mesh::CreateBuffers() {
 
 	vulkan.device.CreateBuffer(
 		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -308,7 +311,7 @@ void ChunkRenderer::Mesh::CreateBuffers() {
 	);
 }
 
-void ChunkRenderer::Mesh::CreateDate() {
+void ChunksRenderer::Mesh::CreateDate() {
 
 	vertices = vk::shared_array<uint32_t>(new uint32_t[4]);
 	vertices[0] = 0;
@@ -333,8 +336,8 @@ void ChunkRenderer::Mesh::CreateDate() {
 	indices[1] = 1;
 	indices[2] = 2;
 	indices[3] = 0;
-	indices[4] = 1;
-	indices[5] = 2;
+	indices[4] = 2;
+	indices[5] = 3;
 
 	buffer.staging.Map();
 	buffer.staging.CopyFrom(indices.get(), 6*sizeof(uint16_t));
@@ -348,16 +351,21 @@ void ChunkRenderer::Mesh::CreateDate() {
 		&buffer.indices
 	);
 
-	float matrix_value = 0.5f;
-	buffer.staging.Map(4);
-	buffer.staging.CopyFrom(&matrix_value, sizeof(float));
+	Character& character = Character::Instance();
+	character.position = glm::vec3(0.0f, 0.0f,-3.0f);
+	character.rotation = glm::vec3(-1 * 15.0f * 3.14159265 / 180.0f, 0.0f, 0.0f);
+	character.UpdateDirection();
+	character.UpdateMatrixMvp();
+
+	buffer.staging.Map(sizeof(glm::mat4));
+	buffer.staging.CopyFrom(&character.matrix.mvp, sizeof(glm::mat4));
 	buffer.staging.Unmap();
 
 	buffer.staging.Flush();
 	buffer.staging.Invalidate();
 
 	VkBufferCopy bufferCopy{};
-	bufferCopy.size = 4;
+	bufferCopy.size = sizeof(glm::mat4);
 
 	vulkan.device.CopyBuffer(
 		&buffer.staging,
@@ -366,7 +374,7 @@ void ChunkRenderer::Mesh::CreateDate() {
 	);
 }
 
-void ChunkRenderer::Mesh::Initialize() {
+void ChunksRenderer::Mesh::Initialize() {
 	CreateBuffers();
 	CreateDate();
 }

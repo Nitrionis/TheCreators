@@ -1,12 +1,13 @@
 #pragma once
 #include "SceneRenderer.h"
 
-class Scene
+
+class Scene :
+	public SceneRenderer
 {
 public:
     Scene();
     ~Scene();
 
 private:
-    SceneRenderer sceneRenderer;
 };

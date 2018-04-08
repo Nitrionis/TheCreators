@@ -38,12 +38,15 @@ public:
 		vk::Image intermediate[3];
 	}image;
 
+	vk::UniqueHandle<VkQueryPool> queryPool{device, vkDestroyQueryPool};
+
 	void Initialize();
 	void ShowIntermediateImage(uint32_t index);
 
 private:
 	void PickPhysicalDevice();
 
+	void CreateQueryPool();
 	void CreateDescriptorPool();
 	void CreateSemaphores();
 	void CreateIntermediateImages();

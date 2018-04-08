@@ -39,7 +39,7 @@ public:
 		VK_SHADER_STAGE_VERTEX_BIT,
 		VK_SHADER_STAGE_FRAGMENT_BIT
 	};
-	std::vector<const char*> blurHorShaderNames = {
+	/*std::vector<const char*> blurHorShaderNames = {
 		"Shaders\\BlurHorizontal\\vert.spv",
 		"Shaders\\BlurHorizontal\\frag.spv"
 	};
@@ -54,12 +54,20 @@ public:
 	std::vector<VkShaderStageFlagBits> blurVerShaderUsage = {
 		VK_SHADER_STAGE_VERTEX_BIT,
 		VK_SHADER_STAGE_FRAGMENT_BIT
-	};
+	};*/
 	std::vector<const char*> blurComShaderNames = {
 		"Shaders\\BlurCompression\\vert.spv",
 		"Shaders\\BlurCompression\\frag.spv"
 	};
 	std::vector<VkShaderStageFlagBits> blurComShaderUsage = {
+		VK_SHADER_STAGE_VERTEX_BIT,
+		VK_SHADER_STAGE_FRAGMENT_BIT
+	};
+	std::vector<const char*> blurShaderNames = {
+		"Shaders\\Blur\\vert.spv",
+		"Shaders\\Blur\\frag.spv"
+	};
+	std::vector<VkShaderStageFlagBits> blurShaderUsage = {
 		VK_SHADER_STAGE_VERTEX_BIT,
 		VK_SHADER_STAGE_FRAGMENT_BIT
 	};

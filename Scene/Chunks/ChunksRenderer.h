@@ -2,7 +2,7 @@
 
 #include "VulkanReference.h"
 
-class ChunkRenderer : virtual public VulkanReference {
+class ChunksRenderer : virtual public VulkanReference {
 private:
 	struct {
 		vk::Material ground;

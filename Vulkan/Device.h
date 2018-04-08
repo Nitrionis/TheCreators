@@ -11,15 +11,14 @@ namespace vk
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
         VkDevice         logicalDevice  = VK_NULL_HANDLE;
 
-		VkPhysicalDeviceProperties       properties;
-		VkPhysicalDeviceFeatures         features;
-        VkPhysicalDeviceMemoryProperties memoryProperties;
-
         std::vector<VkQueueFamilyProperties> queueFamilyProperties;
         std::vector<VkBool32>                queueSupportsPresent;
         std::vector<std::string>             supportedExtensions;
 
     public:
+	    VkPhysicalDeviceProperties       properties;
+	    VkPhysicalDeviceFeatures         features;
+	    VkPhysicalDeviceMemoryProperties memoryProperties;
 	    // Default queue for copy operations
 	    vk::CommandQueue defaultQueue = VK_NULL_HANDLE;
 	    // Default command pool for copy operations

@@ -5,13 +5,15 @@
 #include <fstream>
 #include "ImageLoader.h"
 
+#include <thread>
+
 SceneRenderer::SceneRenderer() {
 	try
 	{
 		vulkan.Initialize();
-		ChunkRenderer::Initialize();
+		ChunksController::Initialize();
 		BlurRenderer::Initialize();
-		UserInterfaceRenderer::Initialize();
+		InterfaceController::Initialize();
 		CreateCommandBuffers();
 	}
 	catch (std::runtime_error e)
@@ -19,14 +21,32 @@ SceneRenderer::SceneRenderer() {
 		std::cout << std::endl << e.what() << std::endl;
 	}
 	DrawScene();
-	for (int i = 0; i < 100; i++) {
-		DrawScene();
-	}
-	system("pause");
-	vulkan.ShowIntermediateImage(0);
-	vulkan.ShowIntermediateImage(1);
-	vulkan.ShowIntermediateImage(2);
 
+	vk::Window& window = vulkan.swapChain.window;
+	auto startFullTime = std::chrono::high_resolution_clock::now();
+	double count = 0;
+	double fullTime = 0.0;
+	while (window.CheckMsg()) {
+		auto startTime = std::chrono::high_resolution_clock::now();
+
+		DrawScene();
+
+		auto endTime = std::chrono::high_resolution_clock::now();
+		auto dtime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+		if (17 - dtime > 0 || 17 - dtime <= 17) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(dtime));
+		}
+		count++;
+		fullTime += dtime;
+	}
+	auto endFullTime = std::chrono::high_resolution_clock::now();
+	std::cout << "Full time: " << std::chrono::duration_cast<std::chrono::milliseconds>(endFullTime - startFullTime).count() / count << std::endl;
+
+	//std::cout << "Full Draw Time: " << dtime.count() << std::endl;
+	system("pause");
+	//vulkan.ShowIntermediateImage(0);
+	//vulkan.ShowIntermediateImage(1);
+	//vulkan.ShowIntermediateImage(2);
 }
 
 SceneRenderer::~SceneRenderer() {
@@ -65,11 +85,18 @@ void SceneRenderer::CreateCommandBuffers() {
 
 		vkBeginCommandBuffer(vulkan.commandBuffers[i], &beginInfo);
 
-		ChunkRenderer::AddToCommandBuffer(vulkan.commandBuffers[i]);
+		//vkCmdResetQueryPool(vulkan.commandBuffers[i], vulkan.queryPool, 0, 2);
+		//vkCmdWriteTimestamp(vulkan.commandBuffers[i], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, vulkan.queryPool, 0);
+		//vkCmdBeginQuery(vulkan.commandBuffers[i], vulkan.queryPool, 0, VK_QUERY_CONTROL_PRECISE_BIT);
 
-		BlurRenderer::AddToCommandBuffer(vulkan.commandBuffers[i]);
+		ChunksRenderer::AddToCommandBuffer(vulkan.commandBuffers[i]);
 
-		UserInterfaceRenderer::AddToCommandBuffer(vulkan.commandBuffers[i], i);
+		//BlurRenderer::AddToCommandBuffer(vulkan.commandBuffers[i]); // todo CHANGE IMAGE INDEX at descSet in Interface
+
+		InterfaceRenderer::AddToCommandBuffer(vulkan.commandBuffers[i], i);
+
+		//vkCmdEndQuery(vulkan.commandBuffers[i], vulkan.queryPool, 0);
+		//vkCmdWriteTimestamp(vulkan.commandBuffers[i], VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, vulkan.queryPool, 1);
 
 		if (vkEndCommandBuffer(vulkan.commandBuffers[i]) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to record command buffer!");
@@ -78,7 +105,7 @@ void SceneRenderer::CreateCommandBuffers() {
 }
 
 void SceneRenderer::DrawScene() {
-	auto startTime = std::chrono::high_resolution_clock::now();
+	//auto startTime = std::chrono::high_resolution_clock::now();
 
 	//vkQueueWaitIdle(vulkan.commandQueue);
 
@@ -103,9 +130,25 @@ void SceneRenderer::DrawScene() {
 	}
 	vulkan.swapChain.Present(vulkan.commandQueue, vulkan.renderFinishedSemaphore);
 
-	vkQueueWaitIdle(vulkan.commandQueue);
+	//vkQueueWaitIdle(vulkan.commandQueue);
 
-	auto endTime = std::chrono::high_resolution_clock::now();
-	auto dtime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-	std::cout << dtime.count() << std::endl;
+	/*uint64_t time[2];
+	if (vkGetQueryPoolResults(
+		vulkan.device,
+		vulkan.queryPool,
+		0, 2, 16, &time, 8,
+		VK_QUERY_RESULT_WAIT_BIT
+	) != VK_SUCCESS) {
+		std::cout << "QueryPoolResult: FAIL     ";
+	}
+	std::cout << "QueryPoolResult: " << (time[1] - time[0])*vulkan.device.properties.limits.timestampPeriod << std::endl;*/
+	//vulkan.
+	//auto endTime = std::chrono::high_resolution_clock::now();
+	//auto dtime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+	//std::cout << dtime.count() << std::endl;
+}
+
+template<typename T>
+T& SceneRenderer::GetComponent() {
+	return *this;
 }

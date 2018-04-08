@@ -1,23 +1,96 @@
 #include "Window.h"
+#include <chrono>
+#include <thread>
+#include <cassert>
+
+using namespace InputControl;
+
+InputSharedData& vk::Window::input = InputSharedData::Instance();
 
 #ifdef _WIN32
 
-LRESULT vk::Window::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
+LRESULT vk::Window::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    const uint64_t maxMsg = UINT64_MAX;
+
     switch (uMsg) {
+        case WM_LBUTTONDOWN:
+            input.mouseCondsCode[1].x = GET_X_LPARAM(lParam);
+            input.mouseCondsCode[1].y = GET_Y_LPARAM(lParam);
+            input.mouseCondsDown[1].x = GET_X_LPARAM(lParam);
+            input.mouseCondsDown[1].y = GET_Y_LPARAM(lParam);
+            input.mouseCondsUp[1].x = -1;
+            input.mouseCondsUp[1].y = -1;
+            break;
+        case WM_RBUTTONDOWN:
+            input.mouseCondsCode[2].x = GET_X_LPARAM(lParam);
+            input.mouseCondsCode[2].y = GET_Y_LPARAM(lParam);
+            input.mouseCondsDown[2].x = GET_X_LPARAM(lParam);
+            input.mouseCondsDown[2].y = GET_Y_LPARAM(lParam);
+            input.mouseCondsUp[2].x = -1;
+            input.mouseCondsUp[2].y = -1;
+            break;
+        case WM_MBUTTONDOWN:
+            input.mouseCondsCode[4].x = GET_X_LPARAM(lParam);
+            input.mouseCondsCode[4].y = GET_Y_LPARAM(lParam);
+            input.mouseCondsDown[4].x = GET_X_LPARAM(lParam);
+            input.mouseCondsDown[4].y = GET_Y_LPARAM(lParam);
+            input.mouseCondsUp[4].x = -1;
+            input.mouseCondsUp[4].y = -1;
+            break;
+
+        case WM_LBUTTONUP:
+            input.mouseCondsCode[1].x = -1;
+            input.mouseCondsCode[1].y = -1;
+            input.mouseCondsDown[1].x = -1;
+            input.mouseCondsDown[1].y = -1;
+            input.mouseCondsUp[1].x = GET_X_LPARAM(lParam);
+            input.mouseCondsUp[1].y = GET_Y_LPARAM(lParam);
+            break;
+        case WM_RBUTTONUP:
+            input.mouseCondsCode[2].x = -1;
+            input.mouseCondsCode[2].y = -1;
+            input.mouseCondsDown[2].x = -1;
+            input.mouseCondsDown[2].y = -1;
+            input.mouseCondsUp[2].x = GET_X_LPARAM(lParam);
+            input.mouseCondsUp[2].y = GET_Y_LPARAM(lParam);
+            break;
+        case WM_MBUTTONUP:
+            input.mouseCondsCode[4].x = -1;
+            input.mouseCondsCode[4].y = -1;
+            input.mouseCondsDown[4].x = -1;
+            input.mouseCondsDown[4].y = -1;
+            input.mouseCondsUp[4].x = GET_X_LPARAM(lParam);
+            input.mouseCondsUp[4].y = GET_Y_LPARAM(lParam);
+            break;
+
+        case WM_KEYDOWN:
+            if (input.keyCondsUp[wParam]) {
+                input.timeLineDown[wParam]++;
+                if (input.timeLineDown[wParam] >= maxMsg)
+                    input.timeLineDown[wParam] = 0;
+                input.keyCondsCode[wParam] = true;
+                input.keyCondsDown[wParam] = true;
+            }
+            break;
+        case WM_KEYUP:
+            input.timeLineUp[wParam]++;
+            if (input.timeLineUp[wParam] >= maxMsg)
+                input.timeLineUp[wParam] = 0;
+            input.keyCondsCode[wParam] = false;
+            input.keyCondsUp[wParam] = true;
+            break;
+
         case WM_CLOSE:
             PostQuitMessage(0);
             break;
-        case WM_PAINT:
-            break;
         default:
+
             break;
     }
     return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
 
-void vk::Window::Setup(const char *name, bool fullscreen, int width, int height)
-{
+void vk::Window::Setup(const char *name, bool fullscreen, int width, int height) {
     HMONITOR hmon = MonitorFromWindow(NULL, MONITOR_DEFAULTTONEAREST);
     MONITORINFO mi = { sizeof(mi) };
     GetMonitorInfo(hmon, &mi);
@@ -60,7 +133,7 @@ void vk::Window::Setup(const char *name, bool fullscreen, int width, int height)
     //AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
 
     hwnd = CreateWindowEx(
-        NULL,
+        0,
         "VulkanWindow",      // class name
         name,                // app name
         WS_POPUP | WS_EX_TOPMOST, // !!!!!!!!!!!!!!!!!!
@@ -80,42 +153,35 @@ void vk::Window::Setup(const char *name, bool fullscreen, int width, int height)
         return;
     }
 
-    if (fullscreen)
-    {
-        ///GetWindowPlacement(hwnd,&wpc);//Сохраняем параметры оконного режима
-        ///SetWindowLong(hwnd,GWL_STYLE,WS_POPUP);//Устанавливаем новые стили
-        ///SetWindowLong(hwnd,GWL_EXSTYLE,WS_EX_TOPMOST);
-        ///ShowWindow(hwnd,SW_SHOWMAXIMIZED);//Окно во весь экран
-        //SetWindowLong(hwnd, GWL_STYLE, 0);
-    }
-
     ShowWindow(hwnd, 1);
     UpdateWindow(hwnd);
-}
 
-void vk::Window::MsgLoop() {
-    MSG msg;
     ZeroMemory(&msg, sizeof(MSG));
-
-    while (true)
-    {
-        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-        {
-            if (msg.message == WM_QUIT)
-                break;
-
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-        else {
-            Sleep(100);
-            // run game code
-        }
-    }
 }
 
-void vk::Window::DestroyWindow()
-{
+bool vk::Window::CheckMsg() {
+
+    while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+    {
+        if (msg.message == WM_QUIT)
+            return false;
+
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+
+    input.prevPosition = input.mousePosition;
+    GetCursorPos(&input.mousePosition);
+    input.mouseMove.x = input.mousePosition.x - input.prevPosition.x;
+    input.mouseMove.y = input.mousePosition.y - input.prevPosition.y;
+
+	if (input.keyCondsDown[VK_ESCAPE])
+		return false;
+
+    return true;
+}
+
+void vk::Window::DestroyWindow() {
     UnregisterClass("VulkanWindow", hinstance);
 }
 

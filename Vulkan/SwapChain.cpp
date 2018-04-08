@@ -244,3 +244,8 @@ VkResult vk::SwapChain::Present(VkQueue queue, VkSemaphore waitSemaphore)
 	}
 	return vkQueuePresentKHR(queue, &presentInfo);
 }
+
+template<typename T>
+T& vk::SwapChain::GetComponent() {
+	return *this;
+}

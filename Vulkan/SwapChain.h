@@ -7,12 +7,11 @@ namespace vk
 {
     class Device;
 
-    class SwapChain {
+    class SwapChain
+    {
         friend class Device;
 
     private:
-	    vk::Window       window;
-
 	    VkSwapchainKHR   swapChain      = VK_NULL_HANDLE;
 	    VkSurfaceKHR     surface        = VK_NULL_HANDLE;
 
@@ -21,6 +20,8 @@ namespace vk
 	    VkInstance       instance       = VK_NULL_HANDLE;
 
     public:
+	    vk::Window       window;
+
 	    std::vector<VkImage>     images;
 	    std::vector<VkImageView> views;
 
@@ -31,6 +32,9 @@ namespace vk
 	    uint32_t         imageCount;
 
 	    uint32_t currImageIndex;
+
+	    template <typename T>
+	    T& GetComponent();
 
         SwapChain();
 

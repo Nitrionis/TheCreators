@@ -2,8 +2,11 @@
 
 #include "VulkanReference.h"
 
-class UserInterfaceRenderer : virtual public VulkanReference {
+class InterfaceRenderer : virtual public VulkanReference {
 private:
+
+	const uint32_t sourceImage = 0;
+
 	struct {
 		vk::RenderPass final{vulkan.device};
 	}renderPass;

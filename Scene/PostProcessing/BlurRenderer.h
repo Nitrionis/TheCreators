@@ -8,8 +8,9 @@ private:
 
 	struct {
 		vk::Material compression;
-		vk::Material horizontal;
-		vk::Material vertical;
+		vk::Material blur;
+		/*vk::Material horizontal;
+		vk::Material vertical;*/
 		vk::Material decompression;
 	}material;
 

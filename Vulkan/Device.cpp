@@ -522,9 +522,11 @@ void vk::Device::CreateImage(
 }
 
 void vk::Device::CopyImage(vk::Buffer *src, vk::Image *dst, VkBufferImageCopy *copyRegion, VkCommandPool commandPool, VkQueue commandQueue) {
-	assert(dst->size >= src->size);
-	assert(dst->image && src->buffer);
 
+	if (copyRegion == nullptr) {
+		assert(dst->size >= src->size);
+		assert(dst->image && src->buffer);
+	}
 	VkCommandBuffer copyCmdBuffer = CreateCommandBuffer(
 		commandPool == VK_NULL_HANDLE ? this->defaultPool : commandPool,
 		VK_COMMAND_BUFFER_LEVEL_PRIMARY,

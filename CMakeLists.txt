@@ -41,16 +41,16 @@ set(SOURCE_FILES
         SceneRenderer/VulkanSharedDate.h
         SceneRenderer/VulkanReference.h
         SceneRenderer/VulkanReference.cpp
-        SceneRenderer/ChunkRenderer.cpp
-        SceneRenderer/ChunkRenderer.h
+        Scene/Chunks/ChunksRenderer.cpp
+        Scene/Chunks/ChunksRenderer.h
         SceneRenderer/RendererSettings.h
-        SceneRenderer/UserInterfaceRenderer.cpp
-        SceneRenderer/UserInterfaceRenderer.h
-        SceneRenderer/BlurRenderer.cpp
-        SceneRenderer/BlurRenderer.h
+        Scene/UserInterface/InterfaceRenderer.cpp
+        Scene/UserInterface/InterfaceRenderer.h
+        Scene/PostProcessing/BlurRenderer.cpp
+        Scene/PostProcessing/BlurRenderer.h
         SceneRenderer/SubpassIndex.h
-        Scene/Character.cpp
-        Scene/Character.h)
+        Scene/Character/Character.cpp
+        Scene/Character/Character.h Scene/Chunks/ChunksController.cpp Scene/Chunks/ChunksController.h Scene/UserInterface/InterfaceController.cpp Scene/UserInterface/InterfaceController.h Scene/Chunks/ChunksBuilder.cpp Scene/Chunks/ChunksBuilder.h Scene/UserInterface/InterfaceBuilder.cpp Scene/UserInterface/InterfaceBuilder.h Scene/Character/CharacterController.cpp Scene/Character/CharacterController.h Scene/PostProcessing/BlurController.cpp Scene/PostProcessing/BlurController.h Scene/PostProcessing/BlurBuilder.cpp Scene/PostProcessing/BlurBuilder.h Scene/ThreadController.cpp Scene/ThreadController.h Vulkan/InputControl.cpp Vulkan/InputControl.h)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/Vulkan/)

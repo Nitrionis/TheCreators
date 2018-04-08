@@ -1,7 +1,7 @@
-#include "UserInterfaceRenderer.h"
+#include "Scene/UserInterface/InterfaceRenderer.h"
 #include "RendererSettings.h"
 
-void UserInterfaceRenderer::CreateRenderPasses() {
+void InterfaceRenderer::CreateRenderPasses() {
 
 	VkAttachmentDescription colorAttachment = {};
 
@@ -52,7 +52,7 @@ void UserInterfaceRenderer::CreateRenderPasses() {
 	renderPass.final.DoFinalInitialise();
 }
 
-void UserInterfaceRenderer::CreateFramebuffers() {
+void InterfaceRenderer::CreateFramebuffers() {
 	framebuffer.final.resize(vulkan.swapChain.imageCount, vk::UniqueFramebuffer{vulkan.device, vkDestroyFramebuffer});
 	for (size_t i = 0; i < vulkan.swapChain.imageCount; i++)
 	{
@@ -73,7 +73,7 @@ void UserInterfaceRenderer::CreateFramebuffers() {
 	}
 }
 
-void UserInterfaceRenderer::CreateSamplers() {
+void InterfaceRenderer::CreateSamplers() {
 
 	VkSamplerCreateInfo samplerInfo = {};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -98,7 +98,7 @@ void UserInterfaceRenderer::CreateSamplers() {
 	}
 }
 
-void UserInterfaceRenderer::CreateDescriptorSet() {
+void InterfaceRenderer::CreateDescriptorSet() {
 
 	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
 	samplerLayoutBinding.binding = 0;
@@ -128,7 +128,7 @@ void UserInterfaceRenderer::CreateDescriptorSet() {
 
 	VkDescriptorImageInfo imageInfos[1];
 	imageInfos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	imageInfos[0].imageView = vulkan.image.intermediate[2].view;
+	imageInfos[0].imageView = vulkan.image.intermediate[sourceImage].view;
 	imageInfos[0].sampler = sampler;
 
 	std::array<VkWriteDescriptorSet, 1> descWrites;
@@ -144,7 +144,7 @@ void UserInterfaceRenderer::CreateDescriptorSet() {
 	vkUpdateDescriptorSets(vulkan.device, descWrites.size(), descWrites.data(), 0, nullptr);
 }
 
-void UserInterfaceRenderer::CreateMaterials() {
+void InterfaceRenderer::CreateMaterials() {
 
 	material.final.viewports[0] = vk::initialize::viewportDefault(vulkan.swapChain.extent);
 	material.final.scissors[0] = vk::initialize::scissorDefault(vulkan.swapChain.extent);
@@ -162,9 +162,9 @@ void UserInterfaceRenderer::CreateMaterials() {
 	vk::Material::CreateMaterials(&material.final);
 }
 
-void UserInterfaceRenderer::Initialize() {
+void InterfaceRenderer::Initialize() {
 	std::cout <<"\n***************************************\n";
-	std::cout <<  "* UserInterfaceRenderer::Initialize() *\n";
+	std::cout <<  "* InterfaceRenderer::Initialize() *\n";
 	std::cout <<  "***************************************\n\n";
 
 	CreateRenderPasses();
@@ -174,20 +174,20 @@ void UserInterfaceRenderer::Initialize() {
 	CreateMaterials();
 }
 
-void UserInterfaceRenderer::AddToCommandBuffer(vk::CommandBuffer commandBuffer, uint32_t bufferIndex) {
+void InterfaceRenderer::AddToCommandBuffer(vk::CommandBuffer commandBuffer, uint32_t bufferIndex) {
 
 	std::array<VkClearValue, 1> clearColors = {VkClearValue{0.000f, 1.000f, 0.000f, 1.0f}};
 
-	VkRenderPassBeginInfo renderPassInfo = {};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderArea.offset = {0, 0};
-	renderPassInfo.renderArea.extent = vulkan.swapChain.extent;
-	renderPassInfo.renderPass = renderPass.final;
-	renderPassInfo.clearValueCount = clearColors.size();
-	renderPassInfo.pClearValues = clearColors.data();
-	renderPassInfo.framebuffer = framebuffer.final[bufferIndex];
+	VkRenderPassBeginInfo passInfo = {};
+	passInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	passInfo.renderArea.offset  = {0, 0};
+	passInfo.renderArea.extent  = vulkan.swapChain.extent;
+	passInfo.renderPass         = renderPass.final;
+	passInfo.clearValueCount    = clearColors.size();
+	passInfo.pClearValues       = clearColors.data();
+	passInfo.framebuffer        = framebuffer.final[bufferIndex];
 
-	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBeginRenderPass(commandBuffer, &passInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material.final);
 

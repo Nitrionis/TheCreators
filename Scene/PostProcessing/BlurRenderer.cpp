@@ -1,5 +1,6 @@
-#include "BlurRenderer.h"
+#include "Scene/PostProcessing/BlurRenderer.h"
 #include "RendererSettings.h"
+#include "BlurRenderer.h"
 
 void BlurRenderer::CreateMaterials() {
 
@@ -18,36 +19,20 @@ void BlurRenderer::CreateMaterials() {
 	);
 	vk::Material::CreateMaterials(&material.compression);
 
-	material.horizontal.viewports[0] = vk::initialize::viewportDefault({width, height});
-	material.horizontal.scissors[0] = vk::initialize::scissorDefault({width, height});
+	material.blur.viewports[0] = vk::initialize::viewportDefault({width, height});
+	material.blur.scissors[0] = vk::initialize::scissorDefault({width, height});
 
-	material.horizontal.pipelineLayoutInfo.setLayoutCount = 1;
-	material.horizontal.pipelineLayoutInfo.pSetLayouts = &descSetLayout;
+	material.blur.pipelineLayoutInfo.setLayoutCount = 1;
+	material.blur.pipelineLayoutInfo.pSetLayouts = &descSetLayout;
 
-	material.horizontal.Setup(
+	material.blur.Setup(
 		vulkan.device,
 		renderPass,
-		RendererSettings::Instance().blurHorShaderNames,
-		RendererSettings::Instance().blurHorShaderUsage,
+		RendererSettings::Instance().blurShaderNames,
+		RendererSettings::Instance().blurShaderUsage,
 		SubpassIndex::zero
 	);
-	vk::Material::CreateMaterials(&material.horizontal);
-
-
-	material.vertical.viewports[0] = vk::initialize::viewportDefault({width, height});
-	material.vertical.scissors[0] = vk::initialize::scissorDefault({width, height});
-
-	material.vertical.pipelineLayoutInfo.setLayoutCount = 1;
-	material.vertical.pipelineLayoutInfo.pSetLayouts = &descSetLayout;
-
-	material.vertical.Setup(
-		vulkan.device,
-		renderPass,
-		RendererSettings::Instance().blurVerShaderNames,
-		RendererSettings::Instance().blurVerShaderUsage,
-		SubpassIndex::zero
-	);
-	vk::Material::CreateMaterials(&material.vertical);
+	vk::Material::CreateMaterials(&material.blur);
 
 	material.decompression.viewports[0] = vk::initialize::viewportDefault(vulkan.swapChain.extent);
 	material.decompression.scissors[0] = vk::initialize::scissorDefault(vulkan.swapChain.extent);
@@ -175,8 +160,8 @@ void BlurRenderer::Initialize() {
 	std::cout <<  "*     BlurRenderer::Initialize()      *\n";
 	std::cout <<  "***************************************\n\n";
 
-	width = vulkan.swapChain.extent.width / 8;
-	height = vulkan.swapChain.extent.height / 8;
+	width = vulkan.swapChain.extent.width / 16;
+	height = vulkan.swapChain.extent.height / 16;
 	CreateRenderPasses();
 	CreateFramebuffers();
 	CreateSamplers();
@@ -280,7 +265,7 @@ void BlurRenderer::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
 	vkCmdBindDescriptorSets(
 		commandBuffer,
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
-		material.horizontal.pipelineLayout, 0, 1, &descSet.compression, 0, nullptr);
+		material.compression.pipelineLayout, 0, 1, &descSet.compression, 0, nullptr);
 
 	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 
@@ -288,6 +273,38 @@ void BlurRenderer::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
 
 	// TODO subpass Blur Horizontal
 	renderPassInfo.framebuffer = framebuffer.secondTarget;
+
+	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material.blur);
+
+	vkCmdBindDescriptorSets(
+		commandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		material.blur.pipelineLayout, 0, 1, &descSet.horizontal, 0, nullptr);
+
+	vkCmdDraw(commandBuffer, 6, 1, 0, 0); // TODO
+
+	vkCmdEndRenderPass(commandBuffer);
+
+	// TODO subpass Blur Vertical
+	renderPassInfo.framebuffer = framebuffer.firstTarget;
+
+	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material.blur);
+
+	vkCmdBindDescriptorSets(
+		commandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		material.blur.pipelineLayout, 0, 1, &descSet.vertical, 0, nullptr);
+
+	vkCmdDraw(commandBuffer, 6, 1, 0, 1); // TODO
+
+	vkCmdEndRenderPass(commandBuffer);
+
+	// TODO subpass Blur Horizontal
+	/*renderPassInfo.framebuffer = framebuffer.secondTarget;
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -300,10 +317,10 @@ void BlurRenderer::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
 
 	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 
-	vkCmdEndRenderPass(commandBuffer);
+	vkCmdEndRenderPass(commandBuffer);*/
 
 	// TODO subpass Blur Vertical
-	renderPassInfo.framebuffer = framebuffer.firstTarget;
+	/*renderPassInfo.framebuffer = framebuffer.firstTarget;
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -316,7 +333,7 @@ void BlurRenderer::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
 
 	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 
-	vkCmdEndRenderPass(commandBuffer);
+	vkCmdEndRenderPass(commandBuffer);*/
 
 	// TODO subpass Blur Decompression
 	renderPassInfo.renderArea.extent = vulkan.swapChain.extent;
@@ -330,7 +347,7 @@ void BlurRenderer::AddToCommandBuffer(vk::CommandBuffer commandBuffer) {
 	vkCmdBindDescriptorSets(
 		commandBuffer,
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
-		material.horizontal.pipelineLayout, 0, 1, &descSet.horizontal, 0, nullptr);
+		material.decompression.pipelineLayout, 0, 1, &descSet.horizontal, 0, nullptr);
 
 	vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 
