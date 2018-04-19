@@ -1,19 +1,15 @@
 #pragma once
 
-#define GLM_FORCE_RADIANS
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include "Scene/Character/Camera/Camera.h"
 
-#include "VectorTypes.h"
-
-class Character {
+class Character : private Camera {
 private:
-	Character(){}
+	Character();
 
 public:
-	~Character(){}
+	~Character();
 
-	Character(Character const&) = delete;
+	Character(Camera const&) = delete;
 	Character& operator= (Character const&) = delete;
 
 	static Character& Instance() {
@@ -21,19 +17,10 @@ public:
 		return s;
 	}
 
-	glm::vec3 position;
-	glm::vec3 direction;
-	glm::vec3 rotation;
-
-	struct {
-		glm::mat4 mvp;
-		glm::mat4 model;
-		glm::mat4 view;
-		glm::mat4 proj;
-	}matrix;
-
-	void UpdateDirection();
-	void UpdateMatrixMvp();
+	template <typename T>
+	T& GetComponent() {
+		return dynamic_cast<T&>(*this);
+	}
 };
 
 

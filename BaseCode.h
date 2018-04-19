@@ -1,6 +1,6 @@
 #pragma once
 
-#include "CustomVulkanTypes.hpp"
+#include "Vulkan/Other/CustomVulkanTypes.hpp"
 
 class BaseCode {
 public:

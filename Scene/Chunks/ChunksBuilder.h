@@ -1,13 +1,20 @@
 #pragma once
 
-#include <Vulkan/Mesh.h>
+#include <Vulkan/Mesh/Mesh.h>
+
+#include "Scene/Chunks/ChunksRenderer.h"
 
 class ChunksBuilder {
+private:
+	ChunksRenderer& renderer;
+
 public:
-	ChunksBuilder();
+	ChunksBuilder(ChunksRenderer& renderer)
+		: renderer(renderer) {}
 	~ChunksBuilder();
 
 	void Initialize();
+
+private:
+
 };
-
-

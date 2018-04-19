@@ -1,5 +1,5 @@
 #include "Scene/UserInterface/InterfaceRenderer.h"
-#include "RendererSettings.h"
+#include "Scene/SceneRenderer/RendererSettings/RendererSettings.h"
 
 void InterfaceRenderer::CreateRenderPasses() {
 

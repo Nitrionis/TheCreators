@@ -1,6 +1,6 @@
 #pragma once
 
-#include "VulkanReference.h"
+#include "Scene/SceneRenderer/VulkanSharedData/VulkanReference.h"
 
 class ChunksRenderer : virtual public VulkanReference {
 private:
@@ -22,33 +22,27 @@ private:
 
 	VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 
-	class Mesh {
-	public:
-		struct {
-			vk::Buffer indices;
-			vk::Buffer vertices;
-			vk::Buffer uniform;
-			vk::Buffer staging;
-		}buffer;
+	struct {
+		vk::Buffer indices;
+		vk::Buffer vertices;
+		vk::Buffer uniform;
+		vk::Buffer staging;
+	}buffer;
 
-		vk::shared_array<uint32_t> vertices = nullptr;
-		vk::shared_array<uint16_t> indices = nullptr;
-
-		//void UpdateBlock(Vector3<> pos, uint32_t value);
-
-		//void UpdateAll();
-
-		void Initialize();
-	private:
-		void CreateBuffers();
-		void CreateDate();
-	}mesh;
+	vk::shared_array<uint32_t> vertices = nullptr;
+	vk::shared_array<uint16_t> indices = nullptr;
 
 public:
 	void AddToCommandBuffer(vk::CommandBuffer commandBuffer);
 	void Initialize();
 
+	void UpdateUniformBuffer(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+	void UpdateVerticesBuffer(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+	void UpdateIndicesBuffer(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+
 private:
+	void CreateBuffers();
+	void CreateDate();
 	void CreateRenderPasses();
 	void CreateFramebuffers();
 	void CreateMaterialGround();

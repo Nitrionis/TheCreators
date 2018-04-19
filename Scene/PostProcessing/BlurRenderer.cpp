@@ -1,5 +1,5 @@
 #include "Scene/PostProcessing/BlurRenderer.h"
-#include "RendererSettings.h"
+#include "Scene/SceneRenderer/RendererSettings/RendererSettings.h"
 #include "BlurRenderer.h"
 
 void BlurRenderer::CreateMaterials() {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "VulkanReference.h"
+#include "Scene/SceneRenderer/VulkanSharedData/VulkanReference.h"
 
 class BlurRenderer : virtual public VulkanReference {
 private:

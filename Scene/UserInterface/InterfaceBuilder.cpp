@@ -1,9 +1,5 @@
 #include "InterfaceBuilder.h"
 
-InterfaceBuilder::InterfaceBuilder() {
-
-}
-
 InterfaceBuilder::~InterfaceBuilder() {
 
 }

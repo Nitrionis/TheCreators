@@ -1,11 +1,11 @@
 #pragma once
 
-#include "VulkanReference.h"
+#include "Scene/SceneRenderer/VulkanSharedData/VulkanReference.h"
 
 class InterfaceRenderer : virtual public VulkanReference {
 private:
 
-	const uint32_t sourceImage = 0;
+	const uint32_t sourceImage = 2;
 
 	struct {
 		vk::RenderPass final{vulkan.device};
